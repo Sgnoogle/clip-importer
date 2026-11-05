@@ -186,6 +186,26 @@ final class AppState: ObservableObject {
         FlagStore.save(flags)
     }
 
+    /// Dai bottoncini sulla miniatura: se la clip è selezionata agisce su tutta la selezione,
+    /// altrimenti solo su di lei. Ricliccare la stessa etichetta la toglie.
+    func toggleFlag(_ f: Flag, on clip: Clip) {
+        if selection.contains(clip.id) && selection.count > 1 {
+            flagSelection(flag(clip) == f ? nil : f)
+            return
+        }
+        let key = ImportedStore.key(clip)
+        flags[key] = flags[key] == f ? nil : f
+        FlagStore.save(flags)
+    }
+
+    /// Riga sotto il nome della sorgente: con una selezione, ricorda i tasti utili.
+    var statusText: String {
+        let n = selectedClips.count
+        guard n > 0 else { return summaryText }
+        let sel = n == 1 ? "1 selezionata" : "\(n) selezionate"
+        return "\(sel) · P ✔︎ scegli · X ✖︎ scarta · U togli · Spazio anteprima · ⌘⌫ elimina"
+    }
+
     func selectFlagged(_ f: Flag) {
         selection = Set(visibleClips.filter { flag($0) == f }.map(\.id))
         anchor = nil
@@ -418,6 +438,10 @@ final class AppState: ObservableObject {
                 selection = [clip.id]
                 self.anchor = clip.id
             }
+        } else if selection == [clip.id] {
+            // Riclic sull'unica selezionata: la deseleziona
+            selection = []
+            anchor = nil
         } else {
             selection = [clip.id]
             anchor = clip.id

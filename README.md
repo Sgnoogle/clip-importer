@@ -11,8 +11,8 @@ Insert the card and the window opens by itself, showing your clips and photos re
 - **Sony XAVC S / HS / S-I** clips (`PRIVATE/M4ROOT`) with instant thumbnails, duration, resolution and frame rate from Sony's XML metadata; **AVCHD** (`.MTS`); MP4/MOV in `DCIM`; or any folder you pick.
 - **Photos**: JPEG, HEIF (`.HIF`) and RAW (`.ARW` and other brands). RAW + JPEG pairs are shown as one item and imported together.
 - **Show everything, videos only or photos only.**
-- **Hover-scrub** through a clip, **Space** for Quick Look, double-click to play.
-- **Lightroom-style flags**: `P` pick, `X` reject, `U` unflag, `←` `→` to move. Rejected items are never imported; if there are picks, the button imports only the picks.
+- Click to select, click again to deselect. **Hover-scrub** through a clip, **Space** for Quick Look, double-click to play.
+- **Lightroom-style flags** (buttons on hover, or keys): `P` pick, `X` reject, `U` unflag, `←` `→` to move. Rejected items are never imported; if there are picks, the button imports only the picks.
 - **Copy or move**: "Move" copies each file, re-reads it from the destination and compares SHA-256 hashes, and only then deletes it from the card — together with its XML, thumbnail, proxy and its entry in Sony's `MEDIAPRO.XML` index, so the camera stays happy.
 - Organize by shoot day, import day, a custom folder, or flat. Optionally copy Sony XML sidecars and proxies (in a `Proxy` folder that DaVinci Resolve links automatically).
 - Remembers what was already imported; skips identical files; safe copies through temporary files.

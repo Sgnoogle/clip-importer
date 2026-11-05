@@ -130,7 +130,8 @@ struct HeaderBar: View {
                 .fixedSize()
                 .disabled(state.progress != nil)
                 .help(source.id.path)
-                Text(state.summaryText).font(.caption).foregroundStyle(.secondary)
+                Text(state.statusText).font(.caption).foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
 
             Button("Cambia cartella…") { state.chooseSourceFolder() }
@@ -433,15 +434,19 @@ struct ClipCell: View {
                 }
             }
             .overlay(alignment: .topLeading) {
-                if let flag {
-                    Image(systemName: flag == .pick ? "checkmark" : "xmark")
-                        .font(.system(size: 11, weight: .heavy))
-                        .foregroundColor(.white)
-                        .frame(width: 22, height: 22)
-                        .background(Circle().fill(flag == .pick ? Color.green : Color.red))
-                        .shadow(color: .black.opacity(0.4), radius: 2)
-                        .padding(6)
-                        .help(flag == .pick ? "Scelta (P) · U per togliere" : "Scartata: non verrà importata (X) · U per togliere")
+                // Etichette: sempre visibili se messe, al passaggio del mouse per metterle
+                if flag != nil || hovering {
+                    HStack(spacing: 4) {
+                        if flag != .reject {
+                            flagButton(.pick, on: flag == .pick,
+                                       help: flag == .pick ? "Scelta · clic o U per togliere" : "Scegli (P) · senza selezione si importano solo le scelte")
+                        }
+                        if flag != .pick {
+                            flagButton(.reject, on: flag == .reject,
+                                       help: flag == .reject ? "Scartata: non verrà importata · clic o U per togliere" : "Scarta (X) · le scartate non si importano")
+                        }
+                    }
+                    .padding(6)
                 }
             }
             .overlay(alignment: .topTrailing) {
@@ -460,6 +465,20 @@ struct ClipCell: View {
             }
             .clipShape(RoundedRectangle(cornerRadius: 7))
             .task(id: clip.id) { await loadThumbnail() }
+    }
+
+    private func flagButton(_ f: Flag, on: Bool, help: String) -> some View {
+        Button { state.toggleFlag(f, on: clip) } label: {
+            Image(systemName: f == .pick ? "checkmark" : "xmark")
+                .font(.system(size: 11, weight: .heavy))
+                .foregroundColor(.white.opacity(on ? 1 : 0.9))
+                .frame(width: 22, height: 22)
+                .background(Circle().fill(on ? (f == .pick ? Color.green : Color.red) : Color.black.opacity(0.35)))
+                .overlay(Circle().strokeBorder(Color.white.opacity(on ? 0 : 0.6), lineWidth: 1))
+                .shadow(color: .black.opacity(0.4), radius: 2)
+        }
+        .buttonStyle(.plain)
+        .help(help)
     }
 
     private func loadThumbnail() async {
