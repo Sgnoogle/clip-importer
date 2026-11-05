@@ -24,7 +24,7 @@ Inserisci la scheda SD, la finestra si apre da sola: scegli le clip, premi Impor
 
 Funziona su macOS 13 Ventura o successivi, sia con chip Apple sia Intel.
 
-### Modo A — quello classico
+### Modo A: quello classico
 
 1. Clicca il link qui sopra, poi fai doppio clic su `ClipImporter.zip` nella cartella Download per estrarlo.
 2. Trascina **Clip Importer** nella cartella **Applicazioni**.
@@ -37,7 +37,7 @@ Funziona su macOS 13 Ventura o successivi, sia con chip Apple sia Intel.
 
 (Su macOS 14 e precedenti basta anche: clic destro sull'app › **Apri** › **Apri**.)
 
-### Modo B — un solo comando, senza avvisi
+### Modo B: un solo comando, senza avvisi
 
 Apri il **Terminale** (Applicazioni › Utility), incolla questa riga e premi Invio:
 
@@ -118,7 +118,9 @@ Togli "Avvia all'accesso" dalle opzioni, esci dall'app dall'icona nella barra de
 
 ## Crediti
 
-Non so scrivere nemmeno una riga di codice: tutta l'app l'ha scritta [Claude](https://claude.ai) di Anthropic, una conversazione alla volta. — *Sgnoogle*
+Non so scrivere nemmeno una riga di codice: tutta l'app l'ha scritta [Claude](https://claude.ai) di Anthropic, una conversazione alla volta.
+
+*Sgnoogle*
 
 Licenza [MIT](LICENSE): libera da usare, modificare e condividere, per qualsiasi scopo.
 
