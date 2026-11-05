@@ -77,7 +77,7 @@ public sealed class AppState : Observable
             s.MediaFilter = value; Save(); Raise();
             Raise(nameof(FilterAll)); Raise(nameof(FilterVideos)); Raise(nameof(FilterPhotos));
             // Quello che non si vede non resta selezionato
-            selection.IntersectWith(clips.Where(value.Includes).Select(c => c.Path));
+            selection.IntersectWith(clips.Where(c => value.Includes(c)).Select(c => c.Path));
             Rebuild();
         }
     }
@@ -115,7 +115,7 @@ public sealed class AppState : Observable
     public Flag FlagOf(Clip c) => flags.TryGetValue(c.Key, out var f) ? f : Flag.None;
     public bool IsRejected(Clip c) => FlagOf(c) == Flag.Reject;
 
-    public List<Clip> FilteredClips => clips.Where(MediaFilter.Includes).ToList();
+    public List<Clip> FilteredClips { get { var f = MediaFilter; return clips.Where(c => f.Includes(c)).ToList(); } }
     public List<Clip> NewClips => FilteredClips.Where(c => !IsImported(c)).ToList();
 
     public List<Clip> VisibleClips
