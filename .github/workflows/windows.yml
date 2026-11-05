@@ -1,0 +1,119 @@
+name: Windows
+
+on:
+  push:
+    branches: [windows-port, main]
+    tags: ['v*']
+    paths-ignore: ['**.md', 'docs/**', 'Sources/**', '*.sh']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      PROJECT: windows/ClipImporter/ClipImporter.csproj
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Check translations
+        run: python windows/tools/check_strings.py
+
+      - name: Build (Release)
+        run: dotnet build $env:PROJECT -c Release
+
+      - name: Self-test (scan, import, verified move, MEDIAPRO.XML, translations)
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem windows/ClipImporter/bin/Release -Recurse -Filter ClipImporter.exe | Select-Object -First 1
+          $p = Start-Process $exe.FullName -ArgumentList "--selftest", "`"$env:RUNNER_TEMP`"" -Wait -PassThru -NoNewWindow `
+               -RedirectStandardOutput selftest.txt -RedirectStandardError selftest-err.txt
+          Get-Content selftest.txt
+          Get-Content selftest-err.txt
+          if ($p.ExitCode -ne 0) { throw "Self-test failed (exit code $($p.ExitCode))" }
+
+      - name: Publish single-file builds (x64, arm64)
+        shell: pwsh
+        run: |
+          foreach ($rid in 'win-x64', 'win-arm64') {
+            dotnet publish $env:PROJECT -c Release -r $rid --self-contained true `
+              -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
+              -p:EnableCompressionInSingleFile=true -p:DebugType=none -o "publish/$rid"
+            if ($LASTEXITCODE -ne 0) { throw "publish $rid failed" }
+          }
+          Get-ChildItem publish -Recurse | Format-Table FullName, Length
+
+      - name: Self-test the published x64 executable
+        shell: pwsh
+        run: |
+          $p = Start-Process publish/win-x64/ClipImporter.exe -ArgumentList "--selftest", "`"$env:RUNNER_TEMP`"" -Wait -PassThru -NoNewWindow `
+               -RedirectStandardOutput selftest2.txt -RedirectStandardError selftest2-err.txt
+          Get-Content selftest2.txt | Select-Object -Last 5
+          Get-Content selftest2-err.txt
+          if ($p.ExitCode -ne 0) { throw "Published self-test failed (exit code $($p.ExitCode))" }
+
+      - name: Smoke test (the window really opens)
+        shell: pwsh
+        run: |
+          $env:CLIPIMPORTER_DATA = Join-Path $env:RUNNER_TEMP "smoke-data"
+          $p = Start-Process publish/win-x64/ClipImporter.exe -PassThru
+          $title = ""
+          for ($i = 0; $i -lt 30 -and -not $title; $i++) {
+            Start-Sleep -Milliseconds 500
+            $p.Refresh()
+            if ($p.HasExited) { throw "The app exited during startup (code $($p.ExitCode))" }
+            $title = $p.MainWindowTitle
+          }
+          Write-Host "Main window title: '$title'"
+          Start-Sleep -Seconds 3
+          $p.Refresh()
+          $alive = -not $p.HasExited
+          Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+          # Pulisce l'avvio automatico impostato al primo avvio
+          Remove-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name 'Clip Importer' -ErrorAction SilentlyContinue
+          if (-not $alive) { throw "The app crashed after opening its window" }
+          if ($title -ne 'Clip Importer') { throw "Main window not found (title '$title')" }
+
+      - name: Package ZIPs
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          foreach ($arch in 'x64', 'arm64') {
+            $dir = "pkg/Clip Importer"
+            Remove-Item -Recurse -Force pkg -ErrorAction SilentlyContinue
+            New-Item -ItemType Directory -Force $dir | Out-Null
+            Copy-Item "publish/win-$arch/ClipImporter.exe" $dir
+            Copy-Item windows/README-Windows.txt "$dir/README.txt"
+            Copy-Item LICENSE "$dir/LICENSE.txt"
+            Compress-Archive -Path $dir -DestinationPath "dist/ClipImporter-Windows-$arch.zip" -Force
+          }
+          Get-ChildItem dist | Format-Table Name, Length
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ClipImporter-Windows-x64
+          path: dist/ClipImporter-Windows-x64.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ClipImporter-Windows-arm64
+          path: dist/ClipImporter-Windows-arm64.zip
+
+      - name: Attach to GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.ref_name }}" dist/ClipImporter-Windows-x64.zip dist/ClipImporter-Windows-arm64.zip --clobber --repo "${{ github.repository }}"
