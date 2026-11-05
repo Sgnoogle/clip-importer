@@ -31,7 +31,7 @@ STAGE="$OUT/ClipImporter"
 mkdir -p "$STAGE/Codice sorgente"
 cp -R "$APP" "$STAGE/"
 cp LEGGIMI.md "$STAGE/LEGGIMI.md"
-rsync -a --exclude build --exclude dist --exclude .DS_Store ./ "$STAGE/Codice sorgente/"
+rsync -a --exclude build --exclude dist --exclude docs --exclude .git --exclude .DS_Store ./ "$STAGE/Codice sorgente/"
 
 ZIP="$HOME/Downloads/ClipImporter.zip"
 rm -f "$ZIP"

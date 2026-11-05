@@ -1,8 +1,22 @@
+<div align="center">
+
+<img src="docs/icon.png" width="128" alt="Icona di Clip Importer">
+
 # Clip Importer
 
-Progetto open source (licenza MIT): https://github.com/Sgnoogle/clip-importer
+### Importa video e foto dalla tua fotocamera Sony sul Mac: l'alternativa gratuita e open source a PlayMemories Home
 
-Il sostituto di PlayMemories Home: inserisci la scheda della Sony e si apre da solo con le clip e le foto da importare.
+Inserisci la scheda SD, la finestra si apre da sola: scegli le clip, premi Importa. Fatto.
+
+[![Scarica](https://img.shields.io/badge/Scarica-Clip%20Importer%20per%20Mac-0A84FF?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/Sgnoogle/clip-importer/releases/latest/download/ClipImporter.zip)
+
+🇬🇧 **[English README](README.md)**
+
+<br>
+
+<img src="docs/screenshot.png" alt="Clip Importer con clip e foto di una scheda Sony" width="100%">
+
+</div>
 
 ## Installazione
 
@@ -101,3 +115,11 @@ Le copie passano da un file temporaneo: se togli la scheda o annulli, non restan
 ## Disinstallare
 
 Togli "Avvia all'accesso" dalle opzioni, esci dall'app dall'icona nella barra dei menu e cestina `Clip Importer` da Applicazioni.
+
+## Crediti
+
+Non so scrivere nemmeno una riga di codice: tutta l'app l'ha scritta [Claude](https://claude.ai) di Anthropic, una conversazione alla volta. — *Sgnoogle*
+
+Licenza [MIT](LICENSE): libera da usare, modificare e condividere, per qualsiasi scopo.
+
+<sub>Clip Importer è un progetto indipendente, non affiliato né approvato da Sony. Sony, Alpha, XAVC S, AVCHD, PlayMemories Home e Imaging Edge sono marchi dei rispettivi proprietari, citati solo per indicare la compatibilità.</sub>
