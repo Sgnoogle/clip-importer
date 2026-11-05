@@ -265,8 +265,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         addSubmenu(main, "Modifica", editMenu)
 
         let flagMenu = NSMenu(title: "Etichette")
-        add(flagMenu, "Segna come scelta ✔️  (P)", #selector(pickAction))
-        add(flagMenu, "Segna come scartata ✖️  (X)", #selector(rejectAction))
+        add(flagMenu, "Segna come scelta  (P)", #selector(pickAction))
+        add(flagMenu, "Segna come scartata  (X)", #selector(rejectAction))
         add(flagMenu, "Togli etichetta  (U)", #selector(unflagAction))
         flagMenu.addItem(.separator())
         add(flagMenu, "Seleziona le scelte", #selector(selectPicksAction))

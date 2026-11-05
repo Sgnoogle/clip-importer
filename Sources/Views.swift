@@ -181,8 +181,8 @@ struct HeaderBar: View {
                 Button("Solo le nuove (⇧⌘A)") { state.selectNew() }
                 Button("Nessuna (⌥⌘A)") { state.selectNone() }
                 Divider()
-                Button("Le scelte ✔️") { state.selectFlagged(.pick) }
-                Button("Le scartate ✖️") { state.selectFlagged(.reject) }
+                Button("Le scelte") { state.selectFlagged(.pick) }
+                Button("Le scartate") { state.selectFlagged(.reject) }
             }
             .fixedSize()
 
@@ -274,8 +274,8 @@ struct ClipGrid: View {
                 .disabled(state.progress != nil)
                 Divider()
                 let flag = state.flag(clip)
-                Button(flag == .pick ? "✔️ Scelta (P)" : "Segna come scelta (P)") { flagOne(clip, .pick) }
-                Button(flag == .reject ? "✖️ Scartata (X)" : "Segna come scartata (X)") { flagOne(clip, .reject) }
+                Button(flag == .pick ? "Scelta ✓ (P)" : "Segna come scelta (P)") { flagOne(clip, .pick) }
+                Button(flag == .reject ? "Scartata ✓ (X)" : "Segna come scartata (X)") { flagOne(clip, .reject) }
                 if flag != nil { Button("Togli etichetta (U)") { flagOne(clip, nil) } }
                 Divider()
                 Button(imported ? "Segna come non importata" : "Segna come già importata") {
@@ -335,6 +335,12 @@ struct ClipCell: View {
 
     private var duration: Double? { clip.duration ?? loadedDuration }
 
+    /// Scartate e già importate si sbiadiscono, ma il segnalibro resta pieno e leggibile.
+    private var dim: Double {
+        if flag == .reject { return selected ? 0.6 : 0.4 }
+        return imported && !selected ? 0.55 : 1
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             thumbnail
@@ -343,21 +349,27 @@ struct ClipCell: View {
                     Text(clip.name)
                         .font(.system(size: 12, weight: .semibold))
                         .lineLimit(1)
+                        .opacity(dim)
                     if imported {
+                        // Grigio: il verde è riservato all'etichetta "scelta"
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 11))
-                            .foregroundColor(.green)
+                            .foregroundStyle(.secondary)
                             .help("Già importata")
                     }
+                    Spacer(minLength: 4)
+                    FlagControls(clip: clip, flag: flag, visible: hovering || flag != nil)
                 }
                 Text("\(Fmt.time(clip.date)) · \(Fmt.bytes(clip.importSize))")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+                    .opacity(dim)
                 if let tech = clip.techLabel {
                     Text(tech)
                         .font(.system(size: 10))
                         .foregroundStyle(.tertiary)
+                        .opacity(dim)
                         .lineLimit(1)
                 }
             }
@@ -374,7 +386,7 @@ struct ClipCell: View {
                 .strokeBorder(selected ? Color.accentColor : Color.clear, lineWidth: 2.5)
         )
         .contentShape(Rectangle())
-        .opacity(flag == .reject ? (selected ? 0.6 : 0.35) : (imported && !selected ? 0.55 : 1))
+
         .onHover { hovering = $0 }
         .help(Fmt.dateTime(clip.date))
     }
@@ -385,10 +397,11 @@ struct ClipCell: View {
             .overlay {
                 if let image = scrubImage ?? thumb {
                     // Le foto verticali si vedono intere, senza tagliare teste e piedi
+                    // Le scartate in bianco e nero: si vede al volo che sono fuori gioco
                     if clip.isPhoto && image.size.height > image.size.width {
-                        Image(nsImage: image).resizable().scaledToFit()
+                        Image(nsImage: image).resizable().scaledToFit().saturation(flag == .reject ? 0 : 1).opacity(dim)
                     } else {
-                        Image(nsImage: image).resizable().scaledToFill()
+                        Image(nsImage: image).resizable().scaledToFill().saturation(flag == .reject ? 0 : 1).opacity(dim)
                     }
                 } else if thumbFailed {
                     Image(systemName: "film").font(.system(size: 28)).foregroundColor(.gray)
@@ -434,20 +447,8 @@ struct ClipCell: View {
                 }
             }
             .overlay(alignment: .topLeading) {
-                // Etichette: sempre visibili se messe, al passaggio del mouse per metterle
-                if flag != nil || hovering {
-                    HStack(spacing: 4) {
-                        if flag != .reject {
-                            flagButton(.pick, on: flag == .pick,
-                                       help: flag == .pick ? "Scelta · clic o U per togliere" : "Scegli (P) · senza selezione si importano solo le scelte")
-                        }
-                        if flag != .pick {
-                            flagButton(.reject, on: flag == .reject,
-                                       help: flag == .reject ? "Scartata: non verrà importata · clic o U per togliere" : "Scarta (X) · le scartate non si importano")
-                        }
-                    }
-                    .padding(6)
-                }
+                // Etichetta: un segnalibro che pende dal bordo, mai un cerchio (quello è la selezione)
+                if let flag { FlagRibbon(flag: flag).padding(.leading, 10) }
             }
             .overlay(alignment: .topTrailing) {
                 if selected || hovering {
@@ -465,20 +466,6 @@ struct ClipCell: View {
             }
             .clipShape(RoundedRectangle(cornerRadius: 7))
             .task(id: clip.id) { await loadThumbnail() }
-    }
-
-    private func flagButton(_ f: Flag, on: Bool, help: String) -> some View {
-        Button { state.toggleFlag(f, on: clip) } label: {
-            Image(systemName: f == .pick ? "checkmark" : "xmark")
-                .font(.system(size: 11, weight: .heavy))
-                .foregroundColor(.white.opacity(on ? 1 : 0.9))
-                .frame(width: 22, height: 22)
-                .background(Circle().fill(on ? (f == .pick ? Color.green : Color.red) : Color.black.opacity(0.35)))
-                .overlay(Circle().strokeBorder(Color.white.opacity(on ? 0 : 0.6), lineWidth: 1))
-                .shadow(color: .black.opacity(0.4), radius: 2)
-        }
-        .buttonStyle(.plain)
-        .help(help)
     }
 
     private func loadThumbnail() async {
@@ -518,6 +505,75 @@ struct ClipCell: View {
             scrubImage = nil
             lastRequested = -1
         }
+    }
+}
+
+// MARK: - Etichette
+
+extension Flag {
+    var color: Color { self == .pick ? Color(red: 0.20, green: 0.70, blue: 0.33) : Color(red: 0.90, green: 0.22, blue: 0.21) }
+    var symbol: String { self == .pick ? "flag.fill" : "flag.slash.fill" }
+}
+
+/// Forma a segnalibro: rettangolo con la coda a V.
+struct RibbonShape: Shape {
+    func path(in r: CGRect) -> Path {
+        var p = Path()
+        p.move(to: CGPoint(x: r.minX, y: r.minY))
+        p.addLine(to: CGPoint(x: r.maxX, y: r.minY))
+        p.addLine(to: CGPoint(x: r.maxX, y: r.maxY))
+        p.addLine(to: CGPoint(x: r.midX, y: r.maxY - r.width * 0.32))
+        p.addLine(to: CGPoint(x: r.minX, y: r.maxY))
+        p.closeSubpath()
+        return p
+    }
+}
+
+/// Il segnalibro che pende dal bordo superiore della miniatura.
+struct FlagRibbon: View {
+    let flag: Flag
+    var body: some View {
+        RibbonShape()
+            .fill(flag.color)
+            .frame(width: 22, height: 30)
+            .overlay(alignment: .top) {
+                Image(systemName: flag.symbol)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.white)
+                    .padding(.top, 6)
+            }
+            .shadow(color: .black.opacity(0.35), radius: 2, y: 1)
+            .help(flag == .pick ? "Scelta (P) · si importano solo le scelte" : "Scartata (X) · non verrà importata")
+            .allowsHitTesting(true)
+    }
+}
+
+/// Le due bandierine nella riga del nome: grigie al passaggio del mouse, colorate se attive.
+struct FlagControls: View {
+    @EnvironmentObject var state: AppState
+    let clip: Clip
+    let flag: Flag?
+    let visible: Bool
+
+    var body: some View {
+        HStack(spacing: 2) {
+            button(.pick, help: flag == .pick ? "Togli «scelta» (U)" : "Scegli (P)")
+            button(.reject, help: flag == .reject ? "Togli «scartata» (U)" : "Scarta (X) · non verrà importata")
+        }
+        .opacity(visible ? 1 : 0)
+        .allowsHitTesting(visible)
+    }
+
+    private func button(_ f: Flag, help: String) -> some View {
+        Button { state.toggleFlag(f, on: clip) } label: {
+            Image(systemName: flag == f ? f.symbol : (f == .pick ? "flag" : "flag.slash"))
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(flag == f ? AnyShapeStyle(f.color) : AnyShapeStyle(.secondary))
+                .frame(width: 20, height: 18)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
     }
 }
 
@@ -669,7 +725,7 @@ struct ImportBar: View {
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
                 .disabled(state.clipsToImport.isEmpty)
-                .help(state.usingPicks ? "Importa le clip nuove segnate ✔️ (le scartate ✖️ non si importano mai)" : state.willMove
+                .help(state.usingPicks ? "Importa le clip nuove segnate come scelte (le scartate non si importano mai)" : state.willMove
                       ? "Copia, verifica byte per byte e poi cancella gli originali \(state.sourcePlace) (⌥⌘I)"
                       : "Senza selezione importa tutto ciò che è nuovo (⌘I) · tieni premuto ⌥ per spostare")
 

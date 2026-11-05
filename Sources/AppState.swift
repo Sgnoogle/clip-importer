@@ -203,7 +203,7 @@ final class AppState: ObservableObject {
         let n = selectedClips.count
         guard n > 0 else { return summaryText }
         let sel = n == 1 ? "1 selezionata" : "\(n) selezionate"
-        return "\(sel) · P ✔︎ scegli · X ✖︎ scarta · U togli · Spazio anteprima · ⌘⌫ elimina"
+        return "\(sel) · P scegli · X scarta · U togli etichetta · Spazio anteprima · ⌘⌫ elimina"
     }
 
     func selectFlagged(_ f: Flag) {

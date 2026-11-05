@@ -39,7 +39,7 @@ La prima volta macOS chiede il permesso di accedere ai "volumi rimovibili": va c
 ## Come si usa
 
 - **Clic** seleziona una clip (un altro clic la deseleziona), **⌘ clic** ne aggiunge/toglie altre, **⇧ clic** seleziona un intervallo, **⌘A** tutte.
-- Passando il mouse su una miniatura compaiono in alto a sinistra **✔︎ scegli** e **✖︎ scarta** (scorciatoie P e X); quando selezioni qualcosa, sotto il nome della scheda compaiono i tasti utili.
+- Le etichette sono **segnalibri** che pendono dal bordo della miniatura (verde = scelta, rosso = scartata), ben distinti dal cerchio della selezione. Per metterle: le **bandierine** che compaiono nella riga del nome passando il mouse, oppure i tasti P e X. Le scartate diventano in bianco e nero. Quando selezioni qualcosa, sotto il nome della scheda compaiono i tasti utili.
 - Il cerchio in alto a destra della miniatura aggiunge/toglie la clip senza tasti.
 - **Passa il mouse sulla miniatura** da sinistra a destra per scorrere dentro la clip.
 - **Doppio clic** riproduce la clip.
