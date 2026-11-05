@@ -38,7 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
 
         state.onWantsWindow = { [weak self] in self?.showWindow() }
 
-        // ⌥ trasforma "Importa" in "Sposta", come nel Finder
+        // ⌥ trasforma L("Import") in "Sposta", come nel Finder
         NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { event in
             let held = event.modifierFlags.contains(.option)
             if AppState.shared.optionHeld != held { AppState.shared.optionHeld = held }
@@ -113,10 +113,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         guard state.progress != nil else { return .terminateNow }
         let a = NSAlert()
-        a.messageText = "È in corso un'importazione"
-        a.informativeText = "Se esci adesso, la clip che si sta copiando non verrà salvata."
-        a.addButton(withTitle: "Continua a importare")
-        a.addButton(withTitle: "Interrompi ed esci")
+        a.messageText = L("An import is in progress")
+        a.informativeText = L("If you quit now, the item being copied won't be saved.")
+        a.addButton(withTitle: L("Keep importing"))
+        a.addButton(withTitle: L("Stop and quit"))
         if a.runModal() == .alertSecondButtonReturn {
             state.cancelImport()
             return .terminateNow
@@ -167,9 +167,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         guard menu === statusItem?.menu else { return }
         menu.removeAllItems()
 
-        add(menu, "Apri Clip Importer", #selector(openWindowAction))
+        add(menu, L("Open Clip Importer"), #selector(openWindowAction))
         if let p = state.progress {
-            let item = NSMenuItem(title: "Importazione in corso: \(Int(p.fraction * 100))%", action: nil, keyEquivalent: "")
+            let item = NSMenuItem(title: L("Importing: {0}%", Int(p.fraction * 100)), action: nil, keyEquivalent: "")
             item.isEnabled = false
             menu.addItem(item)
         }
@@ -177,30 +177,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
 
         let cards = state.sources.filter(\.isVolume)
         if cards.isEmpty {
-            let item = NSMenuItem(title: "Nessuna scheda inserita", action: nil, keyEquivalent: "")
+            let item = NSMenuItem(title: L("No card inserted"), action: nil, keyEquivalent: "")
             item.isEnabled = false
             menu.addItem(item)
         }
         for card in cards {
-            let item = add(menu, "Mostra le clip di «\(card.name)»", #selector(openCardAction(_:)))
+            let item = add(menu, L("Show items on “{0}”", card.name), #selector(openCardAction(_:)))
             item.representedObject = card.id
             item.image = NSImage(systemSymbolName: "sdcard", accessibilityDescription: nil)
         }
         let folders = state.sources.filter { !$0.isVolume }
         for folder in folders {
-            let item = add(menu, "Mostra le clip di «\(folder.name)»", #selector(openCardAction(_:)))
+            let item = add(menu, L("Show items on “{0}”", folder.name), #selector(openCardAction(_:)))
             item.representedObject = folder.id
             item.image = NSImage(systemSymbolName: "folder", accessibilityDescription: nil)
             item.toolTip = folder.id.path
             if state.current?.id == folder.id { item.state = .on }
         }
-        add(menu, folders.isEmpty ? "Sfoglia una cartella…" : "Sfoglia un'altra cartella…", #selector(chooseFolderAction))
+        add(menu, folders.isEmpty ? L("Browse a folder…") : L("Browse another folder…"), #selector(chooseFolderAction))
         menu.addItem(.separator())
 
-        add(menu, "Apri quando inserisci una scheda", #selector(toggleAutoOpen)).state = state.autoOpen ? .on : .off
-        add(menu, "Avvia all'accesso al Mac", #selector(toggleLogin)).state = state.launchAtLogin ? .on : .off
+        add(menu, L("Open when a card is inserted"), #selector(toggleAutoOpen)).state = state.autoOpen ? .on : .off
+        add(menu, L("Start at login"), #selector(toggleLogin)).state = state.launchAtLogin ? .on : .off
         menu.addItem(.separator())
-        add(menu, "Esci da Clip Importer", #selector(NSApplication.terminate(_:)), target: NSApp)
+        add(menu, L("Quit Clip Importer"), #selector(NSApplication.terminate(_:)), target: NSApp)
     }
 
     @discardableResult
@@ -231,53 +231,53 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         let main = NSMenu()
 
         let appMenu = NSMenu()
-        add(appMenu, "Informazioni su Clip Importer",
+        add(appMenu, L("About Clip Importer"),
             #selector(NSApplication.orderFrontStandardAboutPanel(_:)), target: NSApp)
         appMenu.addItem(.separator())
-        add(appMenu, "Nascondi Clip Importer", #selector(NSApplication.hide(_:)), key: "h", target: NSApp)
+        add(appMenu, L("Hide Clip Importer"), #selector(NSApplication.hide(_:)), key: "h", target: NSApp)
         appMenu.addItem(.separator())
-        add(appMenu, "Esci da Clip Importer", #selector(NSApplication.terminate(_:)), key: "q", target: NSApp)
+        add(appMenu, L("Quit Clip Importer"), #selector(NSApplication.terminate(_:)), key: "q", target: NSApp)
         addSubmenu(main, "Clip Importer", appMenu)
 
-        let fileMenu = NSMenu(title: "Archivio")
-        add(fileMenu, "Sfoglia una cartella…", #selector(chooseFolderAction), key: "o")
-        add(fileMenu, "Aggiorna", #selector(refreshAction), key: "r")
-        add(fileMenu, "Importa", #selector(importAction), key: "i")
-        add(fileMenu, "Importa e cancella dalla scheda", #selector(moveAction), key: "i", modifiers: [.command, .option])
+        let fileMenu = NSMenu(title: L("File"))
+        add(fileMenu, L("Browse a folder…"), #selector(chooseFolderAction), key: "o")
+        add(fileMenu, L("Refresh"), #selector(refreshAction), key: "r")
+        add(fileMenu, L("Import"), #selector(importAction), key: "i")
+        add(fileMenu, L("Import and delete from card"), #selector(moveAction), key: "i", modifiers: [.command, .option])
         fileMenu.addItem(.separator())
-        add(fileMenu, "Anteprima rapida", #selector(quickLookAction), key: "y")
-        add(fileMenu, "Mostra nel Finder", #selector(revealSelectionAction), key: "r", modifiers: [.command, .option])
-        add(fileMenu, "Elimina", #selector(deleteAction), key: "\u{8}")
-        add(fileMenu, "Espelli scheda", #selector(ejectAction), key: "e")
+        add(fileMenu, L("Quick Look"), #selector(quickLookAction), key: "y")
+        add(fileMenu, L("Show in Finder"), #selector(revealSelectionAction), key: "r", modifiers: [.command, .option])
+        add(fileMenu, L("Delete"), #selector(deleteAction), key: "\u{8}")
+        add(fileMenu, L("Eject card"), #selector(ejectAction), key: "e")
         fileMenu.addItem(.separator())
-        let close = NSMenuItem(title: "Chiudi finestra", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        let close = NSMenuItem(title: L("Close window"), action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
         fileMenu.addItem(close)
-        addSubmenu(main, "Archivio", fileMenu)
+        addSubmenu(main, L("File"), fileMenu)
 
-        let editMenu = NSMenu(title: "Modifica")
-        editMenu.addItem(NSMenuItem(title: "Taglia", action: #selector(NSText.cut(_:)), keyEquivalent: "x"))
-        add(editMenu, "Copia", #selector(copyAction(_:)), key: "c")
-        editMenu.addItem(NSMenuItem(title: "Incolla", action: #selector(NSText.paste(_:)), keyEquivalent: "v"))
+        let editMenu = NSMenu(title: L("Edit"))
+        editMenu.addItem(NSMenuItem(title: L("Cut"), action: #selector(NSText.cut(_:)), keyEquivalent: "x"))
+        add(editMenu, L("Copy"), #selector(copyAction(_:)), key: "c")
+        editMenu.addItem(NSMenuItem(title: L("Paste"), action: #selector(NSText.paste(_:)), keyEquivalent: "v"))
         editMenu.addItem(.separator())
-        add(editMenu, "Seleziona tutto", #selector(selectAllAction(_:)), key: "a")
-        add(editMenu, "Seleziona solo le nuove", #selector(selectNewAction), key: "a", modifiers: [.command, .shift])
-        add(editMenu, "Deseleziona tutto", #selector(selectNoneAction), key: "a", modifiers: [.command, .option])
-        addSubmenu(main, "Modifica", editMenu)
+        add(editMenu, L("Select all"), #selector(selectAllAction(_:)), key: "a")
+        add(editMenu, L("Select only new"), #selector(selectNewAction), key: "a", modifiers: [.command, .shift])
+        add(editMenu, L("Deselect all"), #selector(selectNoneAction), key: "a", modifiers: [.command, .option])
+        addSubmenu(main, L("Edit"), editMenu)
 
-        let flagMenu = NSMenu(title: "Etichette")
-        add(flagMenu, "Segna come scelta  (P)", #selector(pickAction))
-        add(flagMenu, "Segna come scartata  (X)", #selector(rejectAction))
-        add(flagMenu, "Togli etichetta  (U)", #selector(unflagAction))
+        let flagMenu = NSMenu(title: L("Flags"))
+        add(flagMenu, L("Mark as picked  (P)"), #selector(pickAction))
+        add(flagMenu, L("Mark as rejected  (X)"), #selector(rejectAction))
+        add(flagMenu, L("Remove flag  (U)"), #selector(unflagAction))
         flagMenu.addItem(.separator())
-        add(flagMenu, "Seleziona le scelte", #selector(selectPicksAction))
-        add(flagMenu, "Seleziona le scartate", #selector(selectRejectsAction))
+        add(flagMenu, L("Select picked"), #selector(selectPicksAction))
+        add(flagMenu, L("Select rejected"), #selector(selectRejectsAction))
         flagMenu.addItem(.separator())
-        add(flagMenu, "Elimina le scartate dalla scheda…", #selector(deleteRejectedAction), key: "\u{8}", modifiers: [.command, .option])
-        addSubmenu(main, "Etichette", flagMenu)
+        add(flagMenu, L("Delete rejected from card…"), #selector(deleteRejectedAction), key: "\u{8}", modifiers: [.command, .option])
+        addSubmenu(main, L("Flags"), flagMenu)
 
-        let windowMenu = NSMenu(title: "Finestra")
-        windowMenu.addItem(NSMenuItem(title: "Contrai", action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m"))
-        addSubmenu(main, "Finestra", windowMenu)
+        let windowMenu = NSMenu(title: L("Window"))
+        windowMenu.addItem(NSMenuItem(title: L("Minimize"), action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m"))
+        addSubmenu(main, L("Window"), windowMenu)
         NSApp.windowsMenu = windowMenu
 
         NSApp.mainMenu = main
@@ -310,7 +310,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         let inText = NSApp.keyWindow?.firstResponder is NSText
         switch item.action {
         case #selector(deleteAction):
-            let place = (state.current?.isVolume ?? true) ? "Elimina dalla scheda" : "Sposta nel Cestino"
+            let place = (state.current?.isVolume ?? true) ? L("Delete from card") : L("Move to Trash")
             let n = state.selectedClips.count
             item.title = n > 1 ? "\(place) (\(n))" : place
             return n > 0 && state.progress == nil && !inText
@@ -319,7 +319,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         case #selector(pickAction), #selector(rejectAction), #selector(unflagAction):
             return !state.selection.isEmpty
         case #selector(deleteRejectedAction):
-            item.title = (state.current?.isVolume ?? true) ? "Elimina le scartate dalla scheda…" : "Sposta le scartate nel Cestino"
+            item.title = (state.current?.isVolume ?? true) ? L("Delete rejected from card…") : L("Move rejected to Trash")
             return state.rejectedCount > 0 && state.progress == nil
         case #selector(quickLookAction):
             return !state.selection.isEmpty

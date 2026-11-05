@@ -14,25 +14,25 @@ struct ContentView: View {
                 Divider()
                 Group {
                     if state.scanning {
-                        ProgressView(source.isVolume ? "Lettura della scheda…" : "Lettura della cartella…")
+                        ProgressView(source.isVolume ? L("Reading the card…") : L("Reading the folder…"))
                     } else if state.clips.isEmpty {
                         VStack(spacing: 14) {
-                            MessageView(icon: "film", title: "Nessuna foto o video qui",
+                            MessageView(icon: "film", title: L("No photos or videos here"),
                                         subtitle: source.isVolume
-                                            ? "Su questa scheda non c'è niente da importare."
-                                            : "In questa cartella non ci sono foto o video. Quelli che ci aggiungi compaiono da soli.")
-                            Button("Scegli un'altra cartella…") { state.chooseSourceFolder() }
+                                            ? L("There's nothing to import on this card.")
+                                            : L("There are no photos or videos in this folder. Anything you add will show up automatically."))
+                            Button(L("Choose another folder…")) { state.chooseSourceFolder() }
                         }
                     } else if state.filteredClips.isEmpty {
                         VStack(spacing: 14) {
                             MessageView(icon: state.mediaFilter == .photos ? "photo" : "film",
-                                        title: state.mediaFilter == .photos ? "Nessuna foto qui" : "Nessun video qui",
-                                        subtitle: "Ci sono solo \(state.mediaFilter == .photos ? "video" : "foto").")
-                            Button("Mostra tutto") { state.mediaFilter = .all }
+                                        title: state.mediaFilter == .photos ? L("No photos here") : L("No videos here"),
+                                        subtitle: state.mediaFilter == .photos ? L("There are only videos.") : L("There are only photos."))
+                            Button(L("Show all")) { state.mediaFilter = .all }
                         }
                     } else if state.visibleClips.isEmpty {
-                        MessageView(icon: "checkmark.circle", title: "Hai già importato tutto",
-                                    subtitle: "Togli la spunta da «Nascondi importate» per rivederle.")
+                        MessageView(icon: "checkmark.circle", title: L("You've already imported everything"),
+                                    subtitle: L("Uncheck “Hide imported” to see them again."))
                     } else {
                         ClipGrid()
                     }
@@ -68,13 +68,13 @@ struct WelcomeView: View {
             Image(systemName: "sdcard")
                 .font(.system(size: 64, weight: .light))
                 .foregroundStyle(.tint)
-            Text("Inserisci la scheda SD della fotocamera")
+            Text(L("Insert your camera's SD card"))
                 .font(.title2.weight(.semibold))
-            Text("Clip Importer si apre da solo quando colleghi la scheda e ti mostra le clip da importare. Puoi chiudere questa finestra: resta attivo nella barra dei menu.")
+            Text(L("Clip Importer opens by itself when you insert a card and shows you what to import. You can close this window: it keeps running in the menu bar."))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 440)
-            Button("Sfoglia una cartella…") { state.chooseSourceFolder() }
+            Button(L("Browse a folder…")) { state.chooseSourceFolder() }
                 .padding(.top, 6)
         }
         .padding(40)
@@ -116,12 +116,12 @@ struct HeaderBar: View {
                         }
                     }
                     Divider()
-                    Button("Sfoglia un'altra cartella… (⌘O)") { state.chooseSourceFolder() }
-                    Button("Aggiorna (⌘R)") { state.refresh() }
-                    Button("Mostra nel Finder") { state.revealCurrent() }
+                    Button(L("Browse another folder… (⌘O)")) { state.chooseSourceFolder() }
+                    Button(L("Refresh (⌘R)")) { state.refresh() }
+                    Button(L("Show in Finder")) { state.revealCurrent() }
                     if !source.isVolume {
                         Divider()
-                        Button("Togli «\(source.name)» dall'elenco") { state.removeSource(source) }
+                        Button(L("Remove “{0}” from the list", source.name)) { state.removeSource(source) }
                     }
                 } label: {
                     Text(source.name).font(.headline)
@@ -134,55 +134,55 @@ struct HeaderBar: View {
                     .lineLimit(1)
             }
 
-            Button("Cambia cartella…") { state.chooseSourceFolder() }
+            Button(L("Change folder…")) { state.chooseSourceFolder() }
                 .controlSize(.small)
                 .disabled(state.progress != nil)
-                .help("Scegli un'altra cartella da cui importare")
+                .help(L("Choose another folder to import from"))
 
             Button { state.refresh() } label: { Image(systemName: "arrow.clockwise") }
-                .help(source.isVolume ? "Rileggi la scheda (⌘R)"
-                      : "Rileggi la cartella (⌘R) · le clip nuove compaiono comunque da sole")
+                .help(source.isVolume ? L("Re-read the card (⌘R)")
+                      : L("Re-read the folder (⌘R) · new clips show up automatically anyway"))
                 .disabled(state.progress != nil || state.scanning)
 
             Spacer(minLength: 10)
 
-            Picker("Mostra", selection: $state.mediaFilter) {
+            Picker(L("Show"), selection: $state.mediaFilter) {
                 ForEach(MediaFilter.allCases) { Text($0.label).tag($0) }
             }
             .pickerStyle(.segmented)
             .labelsHidden()
             .fixedSize()
-            .help("Mostra foto e video, solo i video o solo le foto")
+            .help(L("Show photos and videos, only videos or only photos"))
 
             Spacer(minLength: 10)
 
             Menu {
-                Picker("Ordina per", selection: $state.sortKey) {
+                Picker(L("Sort by"), selection: $state.sortKey) {
                     ForEach(SortKey.allCases) { Text($0.label).tag($0) }
                 }
                 .pickerStyle(.inline)
                 Divider()
-                Picker("Ordine", selection: $state.ascending) {
-                    Text(state.sortKey == .date ? "Dalla più vecchia" : "Crescente").tag(true)
-                    Text(state.sortKey == .date ? "Dalla più recente" : "Decrescente").tag(false)
+                Picker(L("Order"), selection: $state.ascending) {
+                    Text(state.sortKey == .date ? L("Oldest first") : L("Ascending")).tag(true)
+                    Text(state.sortKey == .date ? L("Newest first") : L("Descending")).tag(false)
                 }
                 .pickerStyle(.inline)
             } label: {
                 Label(state.sortKey.label, systemImage: "arrow.up.arrow.down")
             }
             .fixedSize()
-            .help("Ordinamento")
+            .help(L("Sorting"))
 
-            Toggle("Nascondi importate", isOn: $state.hideImported)
+            Toggle(L("Hide imported"), isOn: $state.hideImported)
                 .toggleStyle(.checkbox)
 
-            Menu("Seleziona") {
-                Button("Tutte (⌘A)") { state.selectAll() }
-                Button("Solo le nuove (⇧⌘A)") { state.selectNew() }
-                Button("Nessuna (⌥⌘A)") { state.selectNone() }
+            Menu(L("Select")) {
+                Button(L("All (⌘A)")) { state.selectAll() }
+                Button(L("Only new (⇧⌘A)")) { state.selectNew() }
+                Button(L("None (⌥⌘A)")) { state.selectNone() }
                 Divider()
-                Button("Le scelte") { state.selectFlagged(.pick) }
-                Button("Le scartate") { state.selectFlagged(.reject) }
+                Button(L("Picked")) { state.selectFlagged(.pick) }
+                Button(L("Rejected")) { state.selectFlagged(.reject) }
             }
             .fixedSize()
 
@@ -192,11 +192,11 @@ struct HeaderBar: View {
                 Image(systemName: "square.grid.2x2").font(.system(size: 13))
             }
             .foregroundStyle(.secondary)
-            .help("Dimensione delle miniature")
+            .help(L("Thumbnail size"))
 
             if source.isVolume {
                 Button { state.eject() } label: { Image(systemName: "eject") }
-                    .help("Espelli la scheda")
+                    .help(L("Eject the card"))
                     .disabled(state.progress != nil)
             }
         }
@@ -259,30 +259,30 @@ struct ClipGrid: View {
             // Trascina la clip nel Finder o direttamente in DaVinci Resolve
             .onDrag { NSItemProvider(object: clip.url as NSURL) }
             .contextMenu {
-                Button(clip.isPhoto ? "Apri" : "Riproduci") { NSWorkspace.shared.open(clip.url) }
-                Button("Mostra nel Finder") { NSWorkspace.shared.activateFileViewerSelecting([clip.url]) }
-                Button("Copia") {
+                Button(clip.isPhoto ? L("Open") : L("Play")) { NSWorkspace.shared.open(clip.url) }
+                Button(L("Show in Finder")) { NSWorkspace.shared.activateFileViewerSelecting([clip.url]) }
+                Button(L("Copy")) {
                     if !state.selection.contains(clip.id) { state.selection = [clip.id] }
                     state.copySelection()
                 }
                 Divider()
-                Button(clip.isPhoto ? "Importa solo questa foto" : "Importa solo questa clip") { state.importClips([clip], move: false) }
+                Button(clip.isPhoto ? L("Import only this photo") : L("Import only this clip")) { state.importClips([clip], move: false) }
                     .disabled(state.progress != nil)
-                Button("Sposta solo questa \(clip.isPhoto ? "foto" : "clip") (cancella \(state.sourcePlace))") {
+                Button(clip.isPhoto ? L("Move only this photo (delete {0})", state.sourcePlace) : L("Move only this clip (delete {0})", state.sourcePlace)) {
                     state.importClips([clip], move: true)
                 }
                 .disabled(state.progress != nil)
                 Divider()
                 let flag = state.flag(clip)
-                Button(flag == .pick ? "Scelta ✓ (P)" : "Segna come scelta (P)") { flagOne(clip, .pick) }
-                Button(flag == .reject ? "Scartata ✓ (X)" : "Segna come scartata (X)") { flagOne(clip, .reject) }
-                if flag != nil { Button("Togli etichetta (U)") { flagOne(clip, nil) } }
+                Button(flag == .pick ? L("Picked ✓ (P)") : L("Mark as picked (P)")) { flagOne(clip, .pick) }
+                Button(flag == .reject ? L("Rejected ✓ (X)") : L("Mark as rejected (X)")) { flagOne(clip, .reject) }
+                if flag != nil { Button(L("Remove flag (U)")) { flagOne(clip, nil) } }
                 Divider()
-                Button(imported ? "Segna come non importata" : "Segna come già importata") {
+                Button(imported ? L("Mark as not imported") : L("Mark as already imported")) {
                     state.setImported(clip, !imported)
                 }
                 Divider()
-                Button(state.current?.isVolume ?? true ? "Elimina dalla scheda…" : "Sposta nel Cestino") {
+                Button(state.current?.isVolume ?? true ? L("Delete from card…") : L("Move to Trash")) {
                     if !state.selection.contains(clip.id) { state.selection = [clip.id] }
                     state.deleteSelection()
                 }
@@ -300,7 +300,7 @@ struct DayHeader: View {
             Text(Fmt.day(section.id)).font(.system(size: 13, weight: .semibold))
             Text(Fmt.clips(section.clips.count)).font(.system(size: 12)).foregroundStyle(.secondary)
             Spacer()
-            Button(state.isDaySelected(section) ? "Deseleziona giorno" : "Seleziona giorno") {
+            Button(state.isDaySelected(section) ? L("Deselect day") : L("Select day")) {
                 state.toggleDay(section)
             }
             .buttonStyle(.borderless)
@@ -356,7 +356,7 @@ struct ClipCell: View {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 11))
                             .foregroundStyle(.secondary)
-                            .help("Già importata")
+                            .help(L("Already imported"))
                     }
                 }
                 Text("\(Fmt.time(clip.date)) · \(Fmt.bytes(clip.importSize))")
@@ -462,7 +462,7 @@ struct ClipCell: View {
                     }
                     .buttonStyle(.plain)
                     .padding(6)
-                    .help(selected ? "Togli dalla selezione" : "Aggiungi alla selezione")
+                    .help(selected ? L("Remove from selection") : L("Add to selection"))
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: 7))
@@ -545,9 +545,9 @@ struct FlagRibbonButton: View {
             .onHover { over = $0 }
             .help(help)
             .contextMenu {
-                Button(flag == .pick ? "Scelta ✓ (P)" : "Scegli (P)") { state.toggleFlag(.pick, on: clip) }
-                Button(flag == .reject ? "Scartata ✓ (X)" : "Scarta (X)") { state.toggleFlag(.reject, on: clip) }
-                if flag != nil { Button("Togli etichetta (U)") { state.setFlag(nil, on: clip) } }
+                Button(flag == .pick ? L("Picked ✓ (P)") : L("Pick (P)")) { state.toggleFlag(.pick, on: clip) }
+                Button(flag == .reject ? L("Rejected ✓ (X)") : L("Reject (X)")) { state.toggleFlag(.reject, on: clip) }
+                if flag != nil { Button(L("Remove flag (U)")) { state.setFlag(nil, on: clip) } }
             }
     }
 
@@ -573,9 +573,9 @@ struct FlagRibbonButton: View {
 
     private var help: String {
         switch flag {
-        case .pick: return "Scelta: si importano solo le scelte · clic per togliere · ⌥ clic per scartare"
-        case .reject: return "Scartata: non verrà importata · clic per togliere"
-        case nil: return "Clic: scegli (P) · ⌥ clic: scarta (X) · clic destro: altre opzioni"
+        case .pick: return L("Picked: only picks get imported · click to remove · ⌥-click to reject")
+        case .reject: return L("Rejected: won't be imported · click to remove")
+        case nil: return L("Click: pick (P) · ⌥-click: reject (X) · right-click: more options")
         }
     }
 
@@ -676,7 +676,7 @@ struct ImportBar: View {
     private var controls: some View {
         HStack(alignment: .center, spacing: 16) {
             VStack(alignment: .leading, spacing: 5) {
-                Text("IMPORTA IN").font(.system(size: 10, weight: .semibold)).foregroundStyle(.secondary)
+                Text(L("IMPORT TO")).font(.system(size: 10, weight: .semibold)).foregroundStyle(.secondary)
                 HStack(spacing: 6) {
                     Image(systemName: "folder.fill").foregroundStyle(.tint)
                     Text(state.destinationDisplay)
@@ -684,14 +684,14 @@ struct ImportBar: View {
                         .truncationMode(.middle)
                         .frame(maxWidth: 240, alignment: .leading)
                         .help(state.destinationPath)
-                    Button("Cambia…") { state.chooseDestination() }.controlSize(.small)
+                    Button(L("Change…")) { state.chooseDestination() }.controlSize(.small)
                 }
             }
 
             Divider().frame(height: 36)
 
             VStack(alignment: .leading, spacing: 5) {
-                Text("ORGANIZZA").font(.system(size: 10, weight: .semibold)).foregroundStyle(.secondary)
+                Text(L("ORGANIZE")).font(.system(size: 10, weight: .semibold)).foregroundStyle(.secondary)
                 HStack(spacing: 8) {
                     Picker("", selection: $state.folderMode) {
                         ForEach(FolderMode.allCases) { Text($0.label).tag($0) }
@@ -699,7 +699,7 @@ struct ImportBar: View {
                     .labelsHidden()
                     .fixedSize()
                     if state.folderMode == .custom {
-                        TextField("Nome della cartella", text: $state.customFolderName)
+                        TextField(L("Folder name"), text: $state.customFolderName)
                             .textFieldStyle(.roundedBorder)
                             .frame(width: 170)
                     }
@@ -714,21 +714,21 @@ struct ImportBar: View {
             Spacer(minLength: 8)
 
             Menu {
-                Toggle("Copia anche i file XML dei metadati Sony", isOn: $state.copySidecar)
-                Toggle("Copia anche i proxy (in una cartella «Proxy», pronta per DaVinci Resolve)", isOn: $state.copyProxy)
-                Toggle("Aggiungi data e ora al nome dei file", isOn: $state.renameWithDate)
+                Toggle(L("Also copy Sony XML metadata files"), isOn: $state.copySidecar)
+                Toggle(L("Also copy proxies (in a “Proxy” folder, ready for DaVinci Resolve)"), isOn: $state.copyProxy)
+                Toggle(L("Add date and time to file names"), isOn: $state.renameWithDate)
                 Divider()
-                Toggle("Mostra le clip nel Finder al termine", isOn: $state.revealAfter)
-                Toggle("Espelli la scheda al termine", isOn: $state.ejectAfter)
+                Toggle(L("Show in Finder when done"), isOn: $state.revealAfter)
+                Toggle(L("Eject the card when done"), isOn: $state.ejectAfter)
                 Divider()
-                Toggle("Apri automaticamente quando inserisci una scheda", isOn: $state.autoOpen)
-                Toggle("Avvia all'accesso al Mac", isOn: $state.launchAtLogin)
+                Toggle(L("Open automatically when a card is inserted"), isOn: $state.autoOpen)
+                Toggle(L("Start at login"), isOn: $state.launchAtLogin)
             } label: {
                 Image(systemName: "gearshape")
             }
             .menuStyle(.borderlessButton)
             .fixedSize()
-            .help("Opzioni")
+            .help(L("Options"))
 
             VStack(alignment: .trailing, spacing: 6) {
                 Button { state.startImport() } label: {
@@ -738,16 +738,16 @@ struct ImportBar: View {
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
                 .disabled(state.clipsToImport.isEmpty)
-                .help(state.usingPicks ? "Importa le clip nuove segnate come scelte (le scartate non si importano mai)" : state.willMove
-                      ? "Copia, verifica byte per byte e poi cancella gli originali \(state.sourcePlace) (⌥⌘I)"
-                      : "Senza selezione importa tutto ciò che è nuovo (⌘I) · tieni premuto ⌥ per spostare")
+                .help(state.usingPicks ? L("Imports the new picked items (rejected ones are never imported)") : state.willMove
+                      ? L("Copies, verifies byte by byte, then deletes the originals {0} (⌥⌘I)", state.sourcePlace)
+                      : L("With nothing selected, imports everything new (⌘I) · hold ⌥ to move"))
 
-                Toggle("Cancella \(state.sourcePlace) dopo la copia", isOn: $state.deleteAfter)
+                Toggle(L("Delete {0} after copying", state.sourcePlace), isOn: $state.deleteAfter)
                     .toggleStyle(.checkbox)
                     .font(.system(size: 11))
                     .help((state.current?.isVolume ?? true)
-                          ? "Ogni file viene cancellato dalla scheda solo dopo aver verificato che la copia è identica"
-                          : "Gli originali finiscono nel Cestino solo dopo aver verificato che la copia è identica")
+                          ? L("Each file is deleted from the card only after verifying that the copy is identical")
+                          : L("Originals go to the Trash only after verifying that the copy is identical"))
             }
         }
     }
@@ -761,9 +761,9 @@ struct ProgressRow: View {
         HStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
-                    Text("\(progress.verb) \(progress.currentName)")
+                    Text(progress.verb.replacingOccurrences(of: "{0}", with: progress.currentName))
                         .font(.system(size: 13, weight: .semibold))
-                    Text("\(progress.fileIndex + 1) di \(progress.fileCount)")
+                    Text(L("{0} of {1}", progress.fileIndex + 1, progress.fileCount))
                         .foregroundStyle(.secondary)
                     Spacer()
                     Text(progress.detail)
@@ -772,7 +772,7 @@ struct ProgressRow: View {
                 }
                 ProgressView(value: progress.fraction)
             }
-            Button("Annulla") { state.cancelImport() }
+            Button(L("Cancel")) { state.cancelImport() }
         }
     }
 }

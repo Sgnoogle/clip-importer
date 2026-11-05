@@ -17,7 +17,8 @@ ARCH="$(uname -m)"
 
 echo "→ Compilazione ($ARCH)…"
 rm -rf build
-mkdir -p "$BUILD/Contents/MacOS" "$BUILD/Contents/Resources/it.lproj"
+mkdir -p "$BUILD/Contents/MacOS"
+for l in en it es fr de pt-BR ru ja ko zh-Hans; do mkdir -p "$BUILD/Contents/Resources/$l.lproj"; done
 xcrun swiftc -O -swift-version 5 -parse-as-library \
     -target "$ARCH-apple-macos13.0" \
     -sdk "$(xcrun --show-sdk-path --sdk macosx)" \
@@ -26,6 +27,7 @@ xcrun swiftc -O -swift-version 5 -parse-as-library \
 
 cp Resources/Info.plist "$BUILD/Contents/Info.plist"
 cp Resources/AppIcon.icns "$BUILD/Contents/Resources/AppIcon.icns"
+cp Resources/strings.json "$BUILD/Contents/Resources/strings.json"
 codesign --force --deep --sign - "$BUILD" >/dev/null 2>&1 || true
 
 DEST="/Applications"

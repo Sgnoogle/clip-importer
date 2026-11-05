@@ -100,7 +100,7 @@ enum Importer {
             if cancel.isCancelled { result.cancelled = true; break }
             current.fileIndex = index
             current.currentName = clip.name
-            current.verb = "Importazione di"
+            current.verb = L("Importing {0}")
             report(force: true)
             var extrasOK = true     // XML e proxy richiesti copiati davvero (se no l'originale non si cancella)
             var verifiedPairs: [(src: URL, dst: URL)] = []
@@ -115,7 +115,7 @@ enum Importer {
                    try !moving || sameContents(clip.url, dst, cancel: cancel, onBytes: { n in done += n; report() }) {
                     // Stesso file già presente: non lo ricopio (ma completo l'eventuale RAW mancante)
                     if !moving { done += clip.size }
-                    current.verb = "Importazione di"
+                    current.verb = L("Importing {0}")
                     let pairs = try copyCompanions(of: clip, base: dst.deletingPathExtension().lastPathComponent,
                                                    in: folder, verify: moving, cancel: cancel) { n in done += n; report() }
                     verifiedPairs = [(clip.url, dst)] + pairs
@@ -126,9 +126,9 @@ enum Importer {
 
                     let hash = try copyFile(clip.url, to: dst, hashing: moving, cancel: cancel) { n in done += n; report() }
                     if moving {
-                        current.verb = "Verifica di"
+                        current.verb = L("Verifying {0}")
                         try verify(dst, expected: hash, cancel: cancel) { n in done += n; report() }
-                        current.verb = "Importazione di"
+                        current.verb = L("Importing {0}")
                     }
                     let dstBase = dst.deletingPathExtension().lastPathComponent
                     // RAW abbinato al JPEG: stesso nome, così restano accoppiati in Lightroom/Capture One
@@ -170,12 +170,12 @@ enum Importer {
                 if moving && !cancel.isCancelled {
                     guard extrasOK else {
                         result.deleteFailures.append(ImportFailure(clip: clip,
-                            message: "copiata, ma XML o proxy non sono stati copiati: lasciata sulla scheda"))
+                            message: L("copied, but its XML or proxy wasn't: left on the card")))
                         continue
                     }
                     // Mai cancellare se origine e destinazione sono lo stesso file
                     if verifiedPairs.contains(where: { sameFile($0.src, $0.dst) }) { continue }
-                    current.verb = "Cancellazione di"
+                    current.verb = L("Deleting {0}")
                     report(force: true)
                     do {
                         try deleteOriginals(of: clip, mode: o.deleteOriginals)
@@ -203,7 +203,7 @@ enum Importer {
     // MARK: - Verifica e cancellazione
 
     struct VerifyError: LocalizedError {
-        var errorDescription: String? { "la copia non corrisponde all'originale (verifica fallita): l'originale non è stato toccato" }
+        var errorDescription: String? { L("the copy doesn't match the original (verification failed): the original was left untouched") }
     }
 
     /// Rilegge la copia dal disco (senza cache) e ne confronta l'impronta SHA-256.
@@ -258,7 +258,7 @@ enum Importer {
         } catch {
             if (error as NSError).code == NSFileWriteVolumeReadOnlyError || (error as NSError).code == NSFileWriteNoPermissionError {
                 throw CocoaError(.fileWriteVolumeReadOnly, userInfo: [NSLocalizedDescriptionKey:
-                    "la scheda è protetta da scrittura (controlla la levetta LOCK sul lato della SD)"])
+                    L("the card is write-protected (check the LOCK switch on the side of the SD card)")])
             }
             throw error
         }
@@ -278,7 +278,7 @@ enum Importer {
                 if mustVerify {
                     guard try sameContents(src, dst, cancel: cancel, onBytes: onBytes) else {
                         throw CocoaError(.fileWriteFileExists, userInfo: [NSLocalizedDescriptionKey:
-                            "nella destinazione c'è già un \(dst.lastPathComponent) diverso"])
+                            L("a different {0} already exists in the destination", dst.lastPathComponent)])
                     }
                 } else {
                     onBytes(size)

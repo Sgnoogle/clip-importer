@@ -10,7 +10,9 @@ APP="$OUT/$APP_NAME.app"
 SDK="$(xcrun --show-sdk-path --sdk macosx)"
 
 rm -rf "$OUT"
-mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources/it.lproj" "$OUT/tmp"
+mkdir -p "$APP/Contents/MacOS"
+for l in en it es fr de pt-BR ru ja ko zh-Hans; do mkdir -p "$APP/Contents/Resources/$l.lproj"; done
+mkdir -p "$OUT/tmp"
 
 for arch in arm64 x86_64; do
     echo "→ Compilazione ($arch)…"
@@ -24,6 +26,7 @@ rm -rf "$OUT/tmp"
 
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+cp Resources/strings.json "$APP/Contents/Resources/strings.json"
 codesign --force --deep --sign - "$APP"
 
 echo "→ Creazione dello zip…"

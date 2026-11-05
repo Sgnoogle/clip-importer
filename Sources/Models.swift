@@ -46,9 +46,9 @@ enum MediaFilter: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .all: return "Tutto"
-        case .videos: return "Video"
-        case .photos: return "Foto"
+        case .all: return L("All")
+        case .videos: return L("Videos")
+        case .photos: return L("Photos")
         }
     }
     func includes(_ clip: Clip) -> Bool {
@@ -77,10 +77,10 @@ enum SortKey: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .date: return "Data di ripresa"
-        case .name: return "Nome"
-        case .duration: return "Durata"
-        case .size: return "Dimensione"
+        case .date: return L("Date taken")
+        case .name: return L("Name")
+        case .duration: return L("Duration")
+        case .size: return L("Size")
         }
     }
 }
@@ -90,10 +90,10 @@ enum FolderMode: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .flat: return "Tutto nella stessa cartella"
-        case .byShootDay: return "Una cartella per giorno di ripresa"
-        case .byImportDay: return "Una cartella con la data di oggi"
-        case .custom: return "Una cartella con un nome a scelta"
+        case .flat: return L("Everything in one folder")
+        case .byShootDay: return L("One folder per shooting day")
+        case .byImportDay: return L("One folder with today's date")
+        case .custom: return L("One folder with a custom name")
         }
     }
 }
@@ -122,14 +122,14 @@ struct ImportProgress {
     var bytesDone: Int64
     var bytesTotal: Int64
     var startedAt: Date
-    var verb = "Importazione di"
+    var verb = L("Importing {0}")
 
     var fraction: Double {
         bytesTotal > 0 ? min(1, Double(bytesDone) / Double(bytesTotal)) : 0
     }
 
     var detail: String {
-        var parts = ["\(Fmt.bytes(bytesDone)) di \(Fmt.bytes(bytesTotal))"]
+        var parts = [L("{0} of {1}", Fmt.bytes(bytesDone), Fmt.bytes(bytesTotal))]
         let elapsed = Date().timeIntervalSince(startedAt)
         if elapsed > 2, bytesDone > 0 {
             let speed = Double(bytesDone) / elapsed
@@ -164,17 +164,15 @@ final class CancelFlag: @unchecked Sendable {
 }
 
 enum Fmt {
-    static let italian = Locale(identifier: "it_IT")
-
-    private static let dayFormatter: DateFormatter = {
-        let f = DateFormatter(); f.locale = italian; f.dateFormat = "EEEE d MMMM yyyy"; return f
-    }()
-    private static let timeFormatter: DateFormatter = {
-        let f = DateFormatter(); f.locale = italian; f.dateFormat = "HH:mm"; return f
-    }()
-    private static let shortFormatter: DateFormatter = {
-        let f = DateFormatter(); f.locale = italian; f.dateFormat = "d MMM yyyy, HH:mm"; return f
-    }()
+    private static func formatter(_ template: String) -> DateFormatter {
+        let f = DateFormatter()
+        f.locale = Lang.locale
+        f.setLocalizedDateFormatFromTemplate(template)
+        return f
+    }
+    private static let dayFormatter = formatter("EEEEdMMMMyyyy")
+    private static let timeFormatter = formatter("jmm")
+    private static let shortFormatter = formatter("dMMMyyyyjmm")
 
     static func day(_ d: Date) -> String {
         let s = dayFormatter.string(from: d)
@@ -197,11 +195,13 @@ enum Fmt {
 
     static func remaining(_ seconds: Double) -> String {
         if !seconds.isFinite { return "" }
-        if seconds < 60 { return "meno di un minuto" }
-        return "circa \(Int((seconds / 60).rounded(.up))) min"
+        if seconds < 60 { return L("less than a minute") }
+        let m = Int((seconds / 60).rounded(.up))
+        return L("about {0} min left", m)
     }
 
-    static func clips(_ n: Int) -> String { n == 1 ? "1 clip" : "\(n) clip" }
+    static func clips(_ n: Int) -> String { n == 1 ? L("1 clip") : L("{0} clips", n) }
+    static func photos(_ n: Int) -> String { n == 1 ? L("1 photo") : L("{0} photos", n) }
 
     /// "12 clip e 30 foto", "3 foto", "1 clip"
     static func items(_ list: [Clip]) -> String {
@@ -209,7 +209,7 @@ enum Fmt {
         let videos = list.count - photos
         var parts: [String] = []
         if videos > 0 || photos == 0 { parts.append(clips(videos)) }
-        if photos > 0 { parts.append("\(photos) foto") }
-        return parts.joined(separator: " e ")
+        if photos > 0 { parts.append(Fmt.photos(photos)) }
+        return parts.joined(separator: L(" and "))
     }
 }

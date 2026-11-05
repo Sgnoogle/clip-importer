@@ -148,7 +148,7 @@ final class AppState: ObservableObject {
         let total = clips.reduce(Int64(0)) { $0 + $1.importSize }
         let fresh = clips.filter { !isImported($0) }.count
         var parts = [Fmt.items(clips)]
-        parts.append(fresh == 1 ? "1 nuova" : "\(fresh) nuove")
+        parts.append(fresh == 1 ? L("1 new") : L("{0} new", fresh))
         parts.append(Fmt.bytes(total))
         return parts.joined(separator: " · ")
     }
@@ -208,8 +208,8 @@ final class AppState: ObservableObject {
     var statusText: String {
         let n = selectedClips.count
         guard n > 0 else { return summaryText }
-        let sel = n == 1 ? "1 selezionata" : "\(n) selezionate"
-        return "\(sel) · P scegli · X scarta · U togli etichetta · Spazio anteprima · ⌘⌫ elimina"
+        let sel = n == 1 ? L("1 selected") : L("{0} selected", n)
+        return sel + L(" · P pick · X reject · U unflag · Space preview · ⌘⌫ delete")
     }
 
     func selectFlagged(_ f: Flag) {
@@ -241,19 +241,35 @@ final class AppState: ObservableObject {
     var willMove: Bool { deleteAfter != optionHeld }
 
     /// "dalla scheda" / "dalla cartella"
-    var sourcePlace: String { (current?.isVolume ?? true) ? "dalla scheda" : "dalla cartella" }
+    var sourcePlace: String { (current?.isVolume ?? true) ? L("from the card") : L("from the folder") }
 
     var importButtonTitle: String {
         let list = clipsToImport
         let size = Fmt.bytes(list.reduce(Int64(0)) { $0 + $1.importSize })
-        let verb = willMove ? "Sposta" : "Importa"
         if selection.isEmpty {
-            if list.isEmpty { return "Niente di nuovo da importare" }
-            let what = usingPicks ? "scelt" : "nuov"
-            if list.count == 1 { return "\(verb) \(list[0].isPhoto ? "la foto" : "la clip") \(what)a · \(size)" }
-            return "\(verb) le \(list.count) \(what)e · \(size)"
+            if list.isEmpty { return L("Nothing new to import") }
+            let move = willMove
+            if list.count == 1 {
+                let photo = list[0].isPhoto
+                switch (move, usingPicks, photo) {
+                case (false, false, false): return L("Import the new clip · {0}", size)
+                case (false, false, true):  return L("Import the new photo · {0}", size)
+                case (false, true, false):  return L("Import the picked clip · {0}", size)
+                case (false, true, true):   return L("Import the picked photo · {0}", size)
+                case (true, false, false):  return L("Move the new clip · {0}", size)
+                case (true, false, true):   return L("Move the new photo · {0}", size)
+                case (true, true, false):   return L("Move the picked clip · {0}", size)
+                case (true, true, true):    return L("Move the picked photo · {0}", size)
+                }
+            }
+            switch (move, usingPicks) {
+            case (false, false): return L("Import {0} new · {1}", list.count, size)
+            case (false, true):  return L("Import {0} picked · {1}", list.count, size)
+            case (true, false):  return L("Move {0} new · {1}", list.count, size)
+            case (true, true):   return L("Move {0} picked · {1}", list.count, size)
+            }
         }
-        return "\(verb) \(Fmt.items(list)) · \(size)"
+        return willMove ? L("Move {0} · {1}", Fmt.items(list), size) : L("Import {0} · {1}", Fmt.items(list), size)
     }
 
     var destinationDisplay: String { (destinationPath as NSString).abbreviatingWithTildeInPath }
@@ -379,8 +395,8 @@ final class AppState: ObservableObject {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = false
-        panel.prompt = "Mostra le clip"
-        panel.message = "Scegli una scheda o una cartella che contiene clip video"
+        panel.prompt = L("Show clips")
+        panel.message = L("Choose a card or a folder that contains video clips or photos")
         if let start = (current.flatMap { $0.isVolume ? nil : $0.id }) ?? recentFolders.first.map({ URL(fileURLWithPath: $0) }) {
             panel.directoryURL = start
         }
@@ -405,8 +421,8 @@ final class AppState: ObservableObject {
         panel.canChooseFiles = false
         panel.canCreateDirectories = true
         panel.allowsMultipleSelection = false
-        panel.prompt = "Usa questa cartella"
-        panel.message = "Scegli dove importare le clip"
+        panel.prompt = L("Use this folder")
+        panel.message = L("Choose where to import your clips")
         panel.directoryURL = URL(fileURLWithPath: destinationPath)
         guard panel.runModal() == .OK, let url = panel.url else { return }
         destinationPath = url.path
@@ -418,8 +434,9 @@ final class AppState: ObservableObject {
         do {
             try NSWorkspace.shared.unmountAndEjectDevice(at: source.id)
         } catch {
-            alert("Impossibile espellere «\(source.name)»",
-                  "Chiudi le app che stanno usando la scheda e riprova.\n\n\(error.localizedDescription)")
+            alert(L("Couldn't eject “{0}”", source.name),
+                  L("Quit the apps that are using the card and try again.")
+                  + "\n\n\(error.localizedDescription)")
         }
     }
 
@@ -492,7 +509,7 @@ final class AppState: ObservableObject {
         let pb = NSPasteboard.general
         pb.clearContents()
         pb.writeObjects(urls as [NSURL])
-        showBanner("\(Fmt.items(list)) negli appunti · nel Finder ⌘V copia, ⌥⌘V sposta")
+        showBanner(L("{0} copied · in Finder ⌘V copies, ⌥⌘V moves", Fmt.items(list)))
     }
 
     /// ⌘⌫ (o ⌫): dalla scheda elimina per sempre, dalle cartelle sposta nel Cestino.
@@ -505,17 +522,18 @@ final class AppState: ObservableObject {
             let a = NSAlert()
             a.alertStyle = .warning
             a.messageText = list.count == 1
-                ? "Eliminare «\(list[0].name)» dalla scheda?"
-                : "Eliminare \(Fmt.items(list)) dalla scheda?"
-            var info = "Vengono eliminati anche i file collegati (XML, miniatura, proxy, RAW). Non si può annullare."
+                ? L("Delete “{0}” from the card?", list[0].name)
+                : L("Delete {0} from the card?", Fmt.items(list))
+            var info = L("Related files (XML, thumbnail, proxy, RAW) are deleted too. This can't be undone.")
             if notImported > 0 {
                 info = (notImported == list.count
-                        ? (list.count == 1 ? "⚠️ Non è ancora stata importata.\n\n" : "⚠️ Nessuna è ancora stata importata.\n\n")
-                        : "⚠️ \(notImported) non sono ancora state importate.\n\n") + info
+                        ? (list.count == 1 ? L("⚠️ It hasn't been imported yet.\n\n")
+                                           : L("⚠️ None of them has been imported yet.\n\n"))
+                        : L("⚠️ {0} haven't been imported yet.\n\n", notImported)) + info
             }
             a.informativeText = info
-            let del = a.addButton(withTitle: "Elimina")
-            let cancel = a.addButton(withTitle: "Annulla")
+            let del = a.addButton(withTitle: L("Delete"))
+            let cancel = a.addButton(withTitle: L("Cancel"))
             if #available(macOS 11.0, *) { del.hasDestructiveAction = true }
             if notImported > 0 {
                 // Se si perde qualcosa di mai importato, Invio annulla
@@ -546,11 +564,11 @@ final class AppState: ObservableObject {
         selection.subtract(gone)
         if !deleted.isEmpty {
             NSSound(named: source.isVolume ? "Funk" : "Pop")?.play()
-            showBanner(source.isVolume ? "\(Fmt.items(deleted)) eliminate dalla scheda"
-                                       : "\(Fmt.items(deleted)) spostate nel Cestino")
+            showBanner(source.isVolume ? L("{0} deleted from the card", Fmt.items(deleted))
+                                       : L("{0} moved to the Trash", Fmt.items(deleted)))
         }
         if !failures.isEmpty {
-            alert("Alcuni file non sono stati eliminati", failures.prefix(10).joined(separator: "\n"))
+            alert(L("Some files couldn't be deleted"), failures.prefix(10).joined(separator: "\n"))
         }
     }
 
@@ -572,14 +590,14 @@ final class AppState: ObservableObject {
         }
 
         if folderMode == .custom && Importer.sanitize(customFolderName).isEmpty {
-            alert("Manca il nome della cartella",
-                  "Scrivi il nome della cartella in basso, oppure scegli un'altra opzione in «Organizza».")
+            alert(L("Folder name missing"),
+                  L("Type a folder name at the bottom, or pick another option under “Organize”."))
             return
         }
         let needed = list.reduce(Int64(0)) { $0 + $1.importSize + (copyProxy ? ($1.proxySize ?? 0) : 0) }
         if let free = Importer.freeSpace(at: options.destRoot), free < needed {
-            alert("Spazio insufficiente",
-                  "Servono \(Fmt.bytes(needed)), ma nella destinazione ci sono solo \(Fmt.bytes(free)) liberi.")
+            alert(L("Not enough space"),
+                  L("{0} needed, but the destination only has {1} free.", Fmt.bytes(needed), Fmt.bytes(free)))
             return
         }
 
@@ -622,26 +640,27 @@ final class AppState: ObservableObject {
 
         var message: String
         if r.cancelled {
-            message = "Importazione annullata · \(Fmt.items(r.imported)) copiate"
+            message = L("Import cancelled · {0} copied", Fmt.items(r.imported))
         } else {
-            message = "\(Fmt.items(r.imported)) " + (r.imported.count == 1 ? "importata" : "importate")
-            if !r.skipped.isEmpty { message += " · \(r.skipped.count) erano già presenti" }
+            message = L("Imported: {0}", Fmt.items(r.imported))
+            if !r.skipped.isEmpty { message += L(" · {0} were already there", r.skipped.count) }
         }
         if !r.deleted.isEmpty {
             let freed = r.deleted.reduce(Int64(0)) { $0 + $1.importSize + ($1.proxySize ?? 0) }
-            message += " · \(Fmt.bytes(freed)) liberati \(sourcePlace)"
+            message += L(" · {0} freed {1}", Fmt.bytes(freed), sourcePlace)
         }
         showBanner(message)
         NSSound(named: "Glass")?.play()
 
         if !r.failed.isEmpty {
             let lines = r.failed.prefix(10).map { "• \($0.clip.name): \($0.message)" }
-            alert("Alcune clip non sono state importate", lines.joined(separator: "\n"))
+            alert(L("Some items weren't imported"), lines.joined(separator: "\n"))
         }
         if !r.deleteFailures.isEmpty {
             let lines = r.deleteFailures.prefix(10).map { "• \($0.clip.name): \($0.message)" }
-            alert("Importate, ma non cancellate \(sourcePlace)",
-                  "Le copie sono al sicuro; gli originali sono rimasti dove erano.\n\n" + lines.joined(separator: "\n"))
+            alert(L("Imported, but not deleted {0}", sourcePlace),
+                  L("The copies are safe; the originals were left where they were.")
+                  + "\n\n" + lines.joined(separator: "\n"))
         }
         if revealAfter, !r.cancelled, !r.files.isEmpty {
             NSWorkspace.shared.activateFileViewerSelecting(r.files)
@@ -650,7 +669,7 @@ final class AppState: ObservableObject {
             do {
                 try NSWorkspace.shared.unmountAndEjectDevice(at: volume)
             } catch {
-                alert("Clip importate, ma la scheda non è stata espulsa", error.localizedDescription)
+                alert(L("Imported, but the card couldn't be ejected"), error.localizedDescription)
             }
         }
     }
@@ -661,17 +680,14 @@ final class AppState: ObservableObject {
     private func confirmMoveOnce(_ list: [Clip]) -> Bool {
         guard !defaults.bool(forKey: "moveConfirmed") else { return true }
         let a = NSAlert()
-        a.messageText = "Spostare \(Fmt.items(list)) \(sourcePlace)?"
-        a.informativeText = """
-            Ogni file viene copiato, riletto dalla destinazione e confrontato byte per byte con l'originale. \
-            Solo se è identico viene cancellato \(sourcePlace)\((current?.isVolume ?? true) ? "" : " (nel Cestino)").
-
-            Se qualcosa va storto, o annulli, l'originale resta dove è.
-            """
-        a.addButton(withTitle: "Sposta")
-        a.addButton(withTitle: "Annulla")
+        let toTrash = !(current?.isVolume ?? true)
+        let trashNote = toTrash ? L(" (moved to the Trash)") : ""
+        a.messageText = L("Move {0} {1}?", Fmt.items(list), sourcePlace)
+        a.informativeText = L("Each file is copied, read back from the destination and compared byte by byte with the original. Only if it's identical is the original deleted {0}{1}.\n\nIf anything goes wrong, or you cancel, the original stays where it is.", sourcePlace, trashNote)
+        a.addButton(withTitle: L("Move"))
+        a.addButton(withTitle: L("Cancel"))
         a.showsSuppressionButton = true
-        a.suppressionButton?.title = "Non chiedere più"
+        a.suppressionButton?.title = L("Don't ask again")
         let ok = a.runModal() == .alertFirstButtonReturn
         if ok && a.suppressionButton?.state == .on { defaults.set(true, forKey: "moveConfirmed") }
         return ok
