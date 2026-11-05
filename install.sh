@@ -18,7 +18,7 @@ DEST="/Applications"
 [ -w "$DEST" ] || DEST="$HOME/Applications"
 mkdir -p "$DEST"
 
-echo "→ Installo in $DEST…"
+echo "→ Installo in ${DEST}…"
 pkill -x ClipImporter 2>/dev/null || true
 sleep 0.5
 rm -rf "$DEST/$APP"
@@ -26,4 +26,4 @@ ditto "$SRC" "$DEST/$APP"
 xattr -dr com.apple.quarantine "$DEST/$APP" 2>/dev/null || true
 
 open "$DEST/$APP"
-echo "✓ Fatto! Clip Importer è in $DEST: trovi l'icona della scheda SD nella barra dei menu."
+echo "✓ Fatto! Clip Importer è in ${DEST}: trovi l'icona della scheda SD nella barra dei menu."
