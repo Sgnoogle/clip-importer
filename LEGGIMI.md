@@ -4,11 +4,12 @@
 
 # Clip Importer
 
-### Importa video e foto dalla tua fotocamera Sony sul Mac: l'alternativa gratuita e open source a PlayMemories Home
+### Importa video e foto dalla tua fotocamera Sony su Mac e Windows: l'alternativa gratuita e open source a PlayMemories Home
 
 Inserisci la scheda SD, la finestra si apre da sola: scegli le clip, premi Importa. Fatto.
 
-[![Scarica](https://img.shields.io/badge/Scarica-Clip%20Importer%20per%20Mac-0A84FF?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/Sgnoogle/clip-importer/releases/latest/download/ClipImporter.zip)
+[![Scarica per Mac](https://img.shields.io/badge/Scarica-per%20Mac-0A84FF?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/Sgnoogle/clip-importer/releases/latest/download/ClipImporter.zip)
+[![Scarica per Windows](https://img.shields.io/badge/Scarica-per%20Windows-0078D4?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/Sgnoogle/clip-importer/releases/latest/download/ClipImporter-Windows-x64.zip)
 
 🇬🇧 **[English README](README.md)**
 
@@ -46,6 +47,12 @@ curl -fsSL https://raw.githubusercontent.com/Sgnoogle/clip-importer/main/install
 ```
 
 Scarica l'ultima versione, la mette in Applicazioni e la apre. Rilanciala quando vuoi per aggiornare. ([Ecco cosa fa lo script](install.sh).)
+
+### Windows
+
+**[Scarica per Windows (x64)](https://github.com/Sgnoogle/clip-importer/releases/latest/download/ClipImporter-Windows-x64.zip)** · [ARM64](https://github.com/Sgnoogle/clip-importer/releases/latest/download/ClipImporter-Windows-arm64.zip) (solo per i portatili Snapdragon/Copilot+)
+
+Windows 10 (1809 o successivo) o Windows 11. Estrai lo zip e fai doppio clic su `ClipImporter.exe`: non c'è niente da installare. La prima volta **Windows SmartScreen** avvisa che l'app non è firmata: premi **Ulteriori informazioni** e poi **Esegui comunque**. Stesse funzioni e stesse 10 lingue della versione Mac; vive nell'area di notifica vicino all'orologio. Scorciatoie: `Ctrl+C`, `Canc`, `Ctrl+I`, `Ctrl+Alt+I`, `F5`, `Ctrl+O`, `Ctrl+E`, `Spazio`, `P` / `X` / `U`. Per vedere le clip H.265 e le miniature RAW servono le estensioni gratuite **HEVC** e **Raw Image** del Microsoft Store.
 
 ### I permessi che chiede
 
