@@ -6,35 +6,55 @@ Il sostituto di PlayMemories Home: inserisci la scheda della Sony e si apre da s
 
 ## Installazione
 
-### Il modo veloce (app già pronta)
-
-1. Estrai lo zip.
-2. Trascina **Clip Importer** nella cartella **Applicazioni**.
-3. Aprila con un doppio clic.
-
-L'app non è firmata da Apple: se è arrivata da un altro Mac (download, AirDrop, chiavetta) la prima volta macOS la blocca. In quel caso:
-- apri **Impostazioni di Sistema › Privacy e sicurezza**, scorri in basso e premi **Apri comunque**;
-- oppure, nel Terminale: `xattr -dr com.apple.quarantine "/Applications/Clip Importer.app"`.
+### ⬇️ [Scarica Clip Importer (ZIP)](https://github.com/Sgnoogle/clip-importer/releases/latest/download/ClipImporter.zip)
 
 Funziona su macOS 13 Ventura o successivi, sia con chip Apple sia Intel.
 
-### Compilarla da sé (cartella «Codice sorgente»)
+### Modo A — quello classico
 
-1. Apri il **Terminale**, scrivi `cd ` (con lo spazio), trascina dentro la cartella `Codice sorgente` e premi Invio.
+1. Clicca il link qui sopra, poi fai doppio clic su `ClipImporter.zip` nella cartella Download per estrarlo.
+2. Trascina **Clip Importer** nella cartella **Applicazioni**.
+3. Aprila con un doppio clic. **La prima volta macOS la blocca** (vedi sotto): è normale.
+
+**Perché macOS la blocca?** Apple fa aprire senza avvisi solo le app di sviluppatori che pagano l'abbonamento Apple Developer e le fanno "autenticare" da Apple. Clip Importer è un progetto gratuito e non lo è, quindi macOS dice che *"non può verificare che sia priva di malware"*. Il codice è tutto qui, leggibile da chiunque. Per permetterle di aprirsi, una volta sola:
+
+1. Apri **Impostazioni di Sistema › Privacy e sicurezza**.
+2. Scorri in basso: c'è scritto *"Clip Importer" è stata bloccata…*. Premi **Apri comunque** e conferma con la password o il Touch ID.
+
+(Su macOS 14 e precedenti basta anche: clic destro sull'app › **Apri** › **Apri**.)
+
+### Modo B — un solo comando, senza avvisi
+
+Apri il **Terminale** (Applicazioni › Utility), incolla questa riga e premi Invio:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Sgnoogle/clip-importer/main/install.sh | bash
+```
+
+Scarica l'ultima versione, la mette in Applicazioni e la apre. Rilanciala quando vuoi per aggiornare. ([Ecco cosa fa lo script](install.sh).)
+
+### I permessi che chiede
+
+| Quando | macOS chiede | Cosa rispondere |
+|---|---|---|
+| Alla prima scheda inserita | *"Clip Importer" vorrebbe accedere ai file su un volume rimovibile* | **Consenti**: serve per leggere la SD |
+| Alla prima importazione in cartelle come Filmati o Documenti | L'accesso a quella cartella | **Consenti** |
+| Se è attivo l'avvio all'accesso | Un avviso negli Elementi di login | Niente da fare (si toglie dalle opzioni dell'app) |
+
+Se hai premuto "Non consentire" per sbaglio: **Impostazioni di Sistema › Privacy e sicurezza › File e cartelle › Clip Importer** e attiva *Volumi rimovibili*.
+
+### Compilarla da sé
+
+1. Apri il **Terminale**, scrivi `git clone https://github.com/Sgnoogle/clip-importer.git && cd clip-importer` e premi Invio (oppure, dallo zip, `cd ` + trascina la cartella `Codice sorgente`).
 2. Scrivi `bash build.sh` e premi Invio.
 
-Se il Mac chiede di installare gli "Strumenti da riga di comando", accetta e, al termine, rilancia `bash build.sh`.
-
-Lo script compila l'app, la mette in **Applicazioni** e la apre.
-
-Per rifare lo zip con l'app pronta: `bash pacchetto.sh`.
+Se il Mac chiede di installare gli "Strumenti da riga di comando", accetta e, al termine, rilancia `bash build.sh`. Lo script compila l'app, la mette in **Applicazioni** e la apre. Per rifare lo zip con l'app pronta: `bash pacchetto.sh`.
 
 ## Da quel momento
 - c'è un'icona a forma di scheda SD nella barra dei menu in alto;
 - parte da sola quando accendi il Mac (si può disattivare dalle opzioni);
 - quando inserisci una scheda con clip o foto, la finestra si apre da sola.
 
-La prima volta macOS chiede il permesso di accedere ai "volumi rimovibili": va concesso.
 
 ## Come si usa
 

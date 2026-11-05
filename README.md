@@ -21,15 +21,44 @@ Insert the card and the window opens by itself, showing your clips and photos re
 
 Requires macOS 13 Ventura or later (Apple silicon or Intel).
 
-## Download
+## Download & install
 
-Grab `ClipImporter.zip` from the [latest release](../../releases/latest), unzip it and drag **Clip Importer** to Applications.
+### ⬇️ [Download Clip Importer (ZIP)](https://github.com/Sgnoogle/clip-importer/releases/latest/download/ClipImporter.zip)
 
-The app is not signed by Apple, so the first time macOS will block it: open **System Settings › Privacy & Security** and click **Open Anyway**, or run:
+macOS 13 Ventura or later · Apple silicon and Intel · free and open source.
+
+### Option A — the usual way
+
+1. Click the link above, then double-click `ClipImporter.zip` in Downloads to unzip it.
+2. Drag **Clip Importer** into your **Applications** folder.
+3. Double-click it. **macOS will block it the first time** (see below) — that's expected.
+
+**Why does macOS block it?** Apple only lets apps open without warnings if the developer pays for an Apple Developer account and has the app "notarized". Clip Importer is a free hobby project and isn't, so macOS says it *"cannot verify that it is free of malware"*. The full source code is right here for anyone to read. To allow it, once:
+
+1. Open **System Settings › Privacy & Security**.
+2. Scroll down: you'll see *"Clip Importer" was blocked…*. Click **Open Anyway** and confirm with your password or Touch ID.
+
+(On macOS 14 and earlier you can also right-click the app › **Open** › **Open**.)
+
+### Option B — one command, no warnings
+
+Open **Terminal** (Applications › Utilities), paste this and press Return:
 
 ```sh
-xattr -dr com.apple.quarantine "/Applications/Clip Importer.app"
+curl -fsSL https://raw.githubusercontent.com/Sgnoogle/clip-importer/main/install.sh | bash
 ```
+
+It downloads the latest release, installs it in Applications and opens it. Run it again any time to update. ([See what the script does](install.sh).)
+
+### Permissions it will ask for
+
+| When | macOS asks | Answer |
+|---|---|---|
+| First card inserted | *"Clip Importer" would like to access files on a removable volume* | **Allow** — it needs to read the SD card |
+| First import into a folder like Movies/Documents | Access to that folder | **Allow** |
+| If you choose to start at login | A notice in Login Items | Nothing to do (it can be turned off in the app's settings) |
+
+If you clicked "Don't Allow" by mistake: **System Settings › Privacy & Security › Files and Folders › Clip Importer** and turn on *Removable Volumes*.
 
 ## Build from source
 
@@ -39,7 +68,7 @@ No Xcode project needed — just the Command Line Tools:
 git clone https://github.com/Sgnoogle/clip-importer.git
 cd clip-importer
 bash build.sh       # builds, installs to /Applications and launches
-bash pacchetto.sh   # builds a universal (arm64 + x86_64) zip in ~/Downloads
+bash pacchetto.sh   # builds a universal (arm64 + x86_64) zip in ~/Downloads (the release asset)
 ```
 
 The code is plain SwiftUI/AppKit in `Sources/`:

@@ -35,6 +35,6 @@ rsync -a --exclude build --exclude dist --exclude .DS_Store ./ "$STAGE/Codice so
 
 ZIP="$HOME/Downloads/ClipImporter.zip"
 rm -f "$ZIP"
-ditto -c -k --keepParent "$STAGE" "$ZIP"
+ditto -c -k --norsrc --noextattr --noqtn --keepParent "$STAGE" "$ZIP"
 rm -rf "$STAGE"
 echo "✓ Pronto: $ZIP"
