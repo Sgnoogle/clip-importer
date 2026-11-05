@@ -198,6 +198,12 @@ final class AppState: ObservableObject {
         FlagStore.save(flags)
     }
 
+    func setFlag(_ f: Flag?, on clip: Clip) {
+        if selection.contains(clip.id) && selection.count > 1 { flagSelection(f); return }
+        flags[ImportedStore.key(clip)] = f
+        FlagStore.save(flags)
+    }
+
     /// Riga sotto il nome della sorgente: con una selezione, ricorda i tasti utili.
     var statusText: String {
         let n = selectedClips.count

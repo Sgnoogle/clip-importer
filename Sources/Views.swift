@@ -320,6 +320,7 @@ struct ClipCell: View {
     let selected: Bool
     let imported: Bool
     var flag: Flag? = nil
+    var forceHover = false      // solo per le anteprime di prova
 
     @State private var thumb: NSImage?
     @State private var thumbFailed = false
@@ -357,8 +358,6 @@ struct ClipCell: View {
                             .foregroundStyle(.secondary)
                             .help("Già importata")
                     }
-                    Spacer(minLength: 4)
-                    FlagControls(clip: clip, flag: flag, visible: hovering || flag != nil)
                 }
                 Text("\(Fmt.time(clip.date)) · \(Fmt.bytes(clip.importSize))")
                     .font(.system(size: 11))
@@ -448,7 +447,9 @@ struct ClipCell: View {
             }
             .overlay(alignment: .topLeading) {
                 // Etichetta: un segnalibro che pende dal bordo, mai un cerchio (quello è la selezione)
-                if let flag { FlagRibbon(flag: flag).padding(.leading, 10) }
+                if flag != nil || hovering || forceHover {
+                    FlagRibbonButton(clip: clip, flag: flag).padding(.leading, 10)
+                }
             }
             .overlay(alignment: .topTrailing) {
                 if selected || hovering {
@@ -530,50 +531,62 @@ struct RibbonShape: Shape {
 }
 
 /// Il segnalibro che pende dal bordo superiore della miniatura.
-struct FlagRibbon: View {
-    let flag: Flag
-    var body: some View {
-        RibbonShape()
-            .fill(flag.color)
-            .frame(width: 22, height: 30)
-            .overlay(alignment: .top) {
-                Image(systemName: flag.symbol)
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(.white)
-                    .padding(.top, 6)
-            }
-            .shadow(color: .black.opacity(0.35), radius: 2, y: 1)
-            .help(flag == .pick ? "Scelta (P) · si importano solo le scelte" : "Scartata (X) · non verrà importata")
-            .allowsHitTesting(true)
-    }
-}
-
-/// Le due bandierine nella riga del nome: grigie al passaggio del mouse, colorate se attive.
-struct FlagControls: View {
+/// Vuoto (solo contorno) al passaggio del mouse; pieno quando la clip ha un'etichetta.
+/// Clic: scelta sì/no · ⌥ clic: scartata · clic destro: menu.
+struct FlagRibbonButton: View {
     @EnvironmentObject var state: AppState
     let clip: Clip
     let flag: Flag?
-    let visible: Bool
+    @State private var over = false
 
     var body: some View {
-        HStack(spacing: 2) {
-            button(.pick, help: flag == .pick ? "Togli «scelta» (U)" : "Scegli (P)")
-            button(.reject, help: flag == .reject ? "Togli «scartata» (U)" : "Scarta (X) · non verrà importata")
-        }
-        .opacity(visible ? 1 : 0)
-        .allowsHitTesting(visible)
+        Button(action: click) { ribbon }
+            .buttonStyle(.plain)
+            .onHover { over = $0 }
+            .help(help)
+            .contextMenu {
+                Button(flag == .pick ? "Scelta ✓ (P)" : "Scegli (P)") { state.toggleFlag(.pick, on: clip) }
+                Button(flag == .reject ? "Scartata ✓ (X)" : "Scarta (X)") { state.toggleFlag(.reject, on: clip) }
+                if flag != nil { Button("Togli etichetta (U)") { state.setFlag(nil, on: clip) } }
+            }
     }
 
-    private func button(_ f: Flag, help: String) -> some View {
-        Button { state.toggleFlag(f, on: clip) } label: {
-            Image(systemName: flag == f ? f.symbol : (f == .pick ? "flag" : "flag.slash"))
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(flag == f ? AnyShapeStyle(f.color) : AnyShapeStyle(.secondary))
-                .frame(width: 20, height: 18)
-                .contentShape(Rectangle())
+    private var ribbon: some View {
+        ZStack(alignment: .top) {
+            if let flag {
+                RibbonShape().fill(flag.color)
+            } else {
+                RibbonShape().fill(Color.black.opacity(over ? 0.5 : 0.3))
+                RibbonShape().stroke(Color.white.opacity(over ? 1 : 0.85), lineWidth: 1.5)
+            }
+            Image(systemName: flag?.symbol ?? "flag")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundColor(.white)
+                .padding(.top, 7)
         }
-        .buttonStyle(.plain)
-        .help(help)
+        .frame(width: 26, height: 36)
+        .scaleEffect(over ? 1.06 : 1, anchor: .top)
+        .animation(.easeOut(duration: 0.12), value: over)
+        .shadow(color: .black.opacity(0.35), radius: 2, y: 1)
+        .contentShape(Rectangle())
+    }
+
+    private var help: String {
+        switch flag {
+        case .pick: return "Scelta: si importano solo le scelte · clic per togliere · ⌥ clic per scartare"
+        case .reject: return "Scartata: non verrà importata · clic per togliere"
+        case nil: return "Clic: scegli (P) · ⌥ clic: scarta (X) · clic destro: altre opzioni"
+        }
+    }
+
+    private func click() {
+        if NSEvent.modifierFlags.contains(.option) {
+            state.toggleFlag(.reject, on: clip)
+        } else if flag == .reject {
+            state.setFlag(nil, on: clip)
+        } else {
+            state.toggleFlag(.pick, on: clip)
+        }
     }
 }
 
