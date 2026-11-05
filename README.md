@@ -16,7 +16,7 @@ Insert the SD card. The window opens by itself. Pick your clips, click Import. D
 [![MIT License](https://img.shields.io/github/license/Sgnoogle/clip-importer)](LICENSE)
 [![Swift](https://img.shields.io/badge/Swift-SwiftUI-F05138?logo=swift&logoColor=white)](Sources)
 
-🇮🇹 **[Leggimi in italiano](LEGGIMI.md)**
+🌍 English · Italiano · Español · Français · Deutsch · Português · Русский · 日本語 · 한국어 · 简体中文
 
 <br>
 
@@ -48,6 +48,7 @@ If you shoot with a Sony camera and use a Mac, you've probably looked for **Play
 | 🎞 **Editor-friendly** | Optionally copy Sony XML sidecars and **proxies** into a `Proxy` folder that DaVinci Resolve links automatically. Drag clips straight into Finder or your timeline. |
 | 🛡 **Safe** | Copies go through temporary files (an unplugged card never leaves half files), identical files are skipped, already-imported clips are remembered and marked. |
 | ⌨️ **Mac shortcuts** | `⌘C` then `⌘V`/`⌥⌘V` in Finder, `⌘⌫` delete, `⌘I` import, `⌥⌘I` import & delete from card, `⌘R` refresh, `⌘O` open folder, `⌘E` eject. |
+| 🌍 **10 languages** | English, Italian, Spanish, French, German, Portuguese, Russian, Japanese, Korean and Simplified Chinese — picked automatically from your system language. Translations live in one file, [`Resources/strings.json`](Resources/strings.json): fixes and new languages are welcome. |
 | 🪶 **Lightweight** | ~3 MB, native SwiftUI, no dependencies, no tracking, no network access. |
 
 ## Download & install

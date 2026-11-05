@@ -175,6 +175,8 @@ struct HeaderBar: View {
 
             Toggle(L("Hide imported"), isOn: $state.hideImported)
                 .toggleStyle(.checkbox)
+                .lineLimit(1)
+                .fixedSize()
 
             Menu(L("Select")) {
                 Button(L("All (⌘A)")) { state.selectAll() }

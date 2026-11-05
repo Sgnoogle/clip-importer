@@ -181,10 +181,19 @@ enum Fmt {
     static func time(_ d: Date) -> String { timeFormatter.string(from: d) }
     static func dateTime(_ d: Date) -> String { shortFormatter.string(from: d) }
 
+    /// Dimensioni "da Finder" (base 1000), con separatore decimale della lingua dell'interfaccia.
     static func bytes(_ b: Int64) -> String {
-        let f = ByteCountFormatter()
-        f.countStyle = .file
-        return f.string(fromByteCount: b)
+        let units = ["KB", "MB", "GB", "TB"]
+        guard b >= 1000 else { return L("{0} bytes", Int(b)) }
+        var value = Double(b) / 1000
+        var i = 0
+        while value >= 1000 && i < units.count - 1 { value /= 1000; i += 1 }
+        let f = NumberFormatter()
+        f.locale = Lang.locale
+        f.numberStyle = .decimal
+        f.minimumFractionDigits = 0
+        f.maximumFractionDigits = i == 0 ? 0 : (i == 1 ? 1 : 2)
+        return "\(f.string(from: NSNumber(value: value)) ?? "\(value)") \(units[i])"
     }
 
     static func duration(_ seconds: Double) -> String {
