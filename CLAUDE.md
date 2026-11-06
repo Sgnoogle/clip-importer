@@ -141,6 +141,11 @@ Never `git add -A` blindly: subagent worktrees live in `.claude/` (now in `.giti
     20 topics (GitHub max). Social preview image is in `docs/social-preview.png` but must be uploaded by hand
     (Settings › Social preview; no API).
 11. **10 languages** and a **Windows port** were requested at the same time; one shared `strings.json`.
+12. **Bartender compatibility** (2026-11-06): the status item had no `autosaveName`, so macOS called it "Item-0"
+    and Bartender didn't recognise it. Now `autosaveName` and accessibility title/identifier are
+    `com.sgnoogle.clipimporter.statusitem` / "Clip Importer". Don't change that name (menu bar managers key on it).
+    Bartender isn't installed on the dev Mac: the maintainer verifies on theirs. Also removed a duplicate
+    `CFBundleLocalizations` key in Info.plist (the second one, only "it", overrode the full list).
 
 ## Open items / ideas
 

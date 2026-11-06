@@ -17,10 +17,6 @@
         <string>ko</string>
         <string>zh-Hans</string>
     </array>
-    <key>CFBundleLocalizations</key>
-    <array>
-        <string>it</string>
-    </array>
     <key>CFBundleExecutable</key>
     <string>ClipImporter</string>
     <key>CFBundleIdentifier</key>

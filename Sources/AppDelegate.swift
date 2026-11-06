@@ -154,9 +154,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
 
     private func buildStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        // Nome stabile: senza, macOS lo chiama "Item-0" e Bartender, Ice e simili non riescono
+        // a riconoscere l'icona né a ricordarne la posizione tra un avvio e l'altro.
+        item.autosaveName = "com.sgnoogle.clipimporter.statusitem"
         let image = NSImage(systemSymbolName: "sdcard", accessibilityDescription: "Clip Importer")
         image?.isTemplate = true
-        item.button?.image = image
+        if let button = item.button {
+            button.image = image
+            button.toolTip = "Clip Importer"
+            button.setAccessibilityTitle("Clip Importer")
+            button.setAccessibilityIdentifier("com.sgnoogle.clipimporter.statusitem")
+        }
         let menu = NSMenu()
         menu.delegate = self
         item.menu = menu
