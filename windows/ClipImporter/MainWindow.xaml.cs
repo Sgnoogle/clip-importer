@@ -332,7 +332,32 @@ public partial class MainWindow : Window
             case Key.Left: case Key.Right:
                 if (state.MoveSelection(key == Key.Right ? 1 : -1, shift) is { } target) BringIntoView(target);
                 e.Handled = true; break;
+            case Key.Up: case Key.Down:
+                if (VerticalTarget(key == Key.Down) is { } below) BringIntoView(state.SelectByArrow(below, shift));
+                e.Handled = true; break;
         }
+    }
+
+    /// <summary>
+    /// Frecce ↑ ↓: la clip nella riga sopra/sotto, nella colonna più vicina (come Esplora file).
+    /// Le righe si leggono dalla posizione delle schede sullo schermo, così valgono anche i gruppi per giorno.
+    /// Oltre la prima/ultima riga va alla prima/ultima clip.
+    /// </summary>
+    Clip? VerticalTarget(bool down)
+    {
+        if (state.ArrowCurrent(down) is not { } current) return state.FirstOrLast(down);
+        var cards = new List<(Clip clip, Point pos)>();
+        foreach (var b in Descendants<Border>(Scroller))
+            if (b.Name == "Card" && b.DataContext is ClipItem it && b.IsVisible)
+                cards.Add((it.Clip, b.TranslatePoint(new Point(0, 0), Scroller)));
+        var me = cards.FirstOrDefault(c => c.clip == current);
+        if (me.clip == null) return null;
+        // Righe = schede con la stessa Y, in ordine dall'alto
+        var rows = cards.GroupBy(c => Math.Round(c.pos.Y)).OrderBy(g => g.Key).ToList();
+        int r = rows.FindIndex(g => g.Any(c => c.clip == current));
+        int next = r + (down ? 1 : -1);
+        if (next < 0 || next >= rows.Count) return state.FirstOrLast(!down);
+        return rows[next].OrderBy(c => Math.Abs(c.pos.X - me.pos.X)).ThenBy(c => c.pos.X).First().clip;
     }
 
     void BringIntoView(Clip clip)

@@ -84,7 +84,7 @@ Se il Mac chiede di installare gli "Strumenti da riga di comando", accetta e, al
 - Il cerchio in alto a destra della miniatura aggiunge/toglie la clip senza tasti.
 - **Passa il mouse sulla miniatura** da sinistra a destra per scorrere dentro la clip.
 - **Doppio clic** riproduce la clip.
-- **Etichette, come in Lightroom**: **P** segna la clip come scelta ✔️, **X** come scartata ✖️, **U** toglie l'etichetta (premere di nuovo lo stesso tasto la toglie). Con **← →** passi alla clip precedente/successiva (⇧ allarga la selezione), quindi si fa tutto da tastiera.
+- **Etichette, come in Lightroom**: **P** segna la clip come scelta ✔️, **X** come scartata ✖️, **U** toglie l'etichetta (premere di nuovo lo stesso tasto la toglie). Con le frecce **← → ↑ ↓** ti muovi nella griglia come nel Finder (⇧ allarga la selezione), quindi si fa tutto da tastiera.
   - Le scartate ✖️ diventano sbiadite e **non vengono mai importate**.
   - Se ci sono clip nuove segnate ✔️ e non hai selezionato niente, il pulsante importa **solo le scelte** («Importa le 5 scelte»).
   - Menu **Etichette**: seleziona le scelte o le scartate, ed **Elimina le scartate dalla scheda** (⌥⌘⌫), per le clip da 2 secondi registrate per sbaglio.

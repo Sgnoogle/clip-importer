@@ -119,7 +119,8 @@ Never `git add -A` blindly: subagent worktrees live in `.claude/` (now in `.giti
    doesn't ask to repair its database. Photos: the camera may rebuild its image database (same as Finder delete).
 5. **Finder-style shortcuts**: ⌘C puts files (+ RAW, + XML if enabled) on the pasteboard; **Finder ⌘V copies,
    ⌥⌘V moves** (verified working with files put there by another app). ⌘⌫/⌫ delete (card: confirmation,
-   Return = Cancel if something was never imported), Space/⌘Y Quick Look, Esc, ←→, ⌥⌘R reveal. Plain keys are
+   Return = Cancel if something was never imported), Space/⌘Y Quick Look, Esc, ←→↑↓ (↑↓ = same column in the row above/below; rows computed from grid width on Mac,
+   from card positions on Windows; days start a new row; ⇧ adds the items in between), ⌥⌘R reveal. Plain keys are
    handled by a local key monitor that ignores text fields (menu key equivalents without modifiers would steal typing).
    Cards are watched by FSEvents too, so Finder moves update the grid.
 6. **Flags like Lightroom**: P pick, X reject, U unflag (same key again toggles off). Rejected are never imported

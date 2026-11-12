@@ -49,9 +49,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
             guard let self, let w = self.window, event.window === w, w.attachedSheet == nil,
                   !(w.firstResponder is NSText) else { return event }
             let mods = event.modifierFlags.intersection([.command, .option, .control, .shift])
-            // Frecce ← → (con ⇧ allargano la selezione)
-            if mods.subtracting(.shift).isEmpty, event.keyCode == 123 || event.keyCode == 124 {
-                self.state.moveSelection(by: event.keyCode == 124 ? 1 : -1, extend: mods.contains(.shift))
+            // Frecce ← → ↑ ↓ (con ⇧ allargano la selezione)
+            if mods.subtracting(.shift).isEmpty, (123...126).contains(event.keyCode) {
+                let extend = mods.contains(.shift)
+                switch event.keyCode {
+                case 123: self.state.moveSelection(by: -1, extend: extend)
+                case 124: self.state.moveSelection(by: 1, extend: extend)
+                case 125: self.state.moveSelectionVertically(by: 1, extend: extend)
+                default:  self.state.moveSelectionVertically(by: -1, extend: extend)
+                }
                 return nil
             }
             guard mods.isEmpty else { return event }

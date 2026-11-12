@@ -44,7 +44,7 @@ If you shoot with a Sony camera, you've probably looked for **PlayMemories Home 
 | 📷 **Photos** | JPEG, HEIF (`.HIF`) and RAW (`.ARW`, plus other brands' RAW). **RAW + JPEG pairs appear as one item** and are imported together with matching names. |
 | 🗂 **Show what you need** | All · Videos · Photos. Grouped by shooting day, sortable by name, duration or size. |
 | 👀 **Preview** | Hover over a clip to scrub through it, press **Space** for Quick Look, double-click to play. |
-| 🔖 **Flags, Lightroom-style** | Hover a thumbnail and click the bookmark to **pick** it (⌥-click to **reject**), or use `P` / `X` / `U` and `←` `→`. Rejected items are never imported; if you picked some, the button imports only the picks. |
+| 🔖 **Flags, Lightroom-style** | Hover a thumbnail and click the bookmark to **pick** it (⌥-click to **reject**), or use `P` / `X` / `U` and the arrow keys `←` `→` `↑` `↓`. Rejected items are never imported; if you picked some, the button imports only the picks. |
 | ✂️ **Copy or move** | "Move" copies each file, **re-reads it from the destination and compares SHA-256 hashes**, and only then deletes it from the card, together with its XML, thumbnail, proxy and its entry in Sony's `MEDIAPRO.XML` index, so the camera doesn't complain. |
 | 📁 **Organize** | One folder per shooting day, today's date, a custom name, or everything together. Optionally add date and time to file names. |
 | 🎞 **Editor-friendly** | Optionally copy Sony XML sidecars and **proxies** into a `Proxy` folder that DaVinci Resolve links automatically. Drag clips straight into Finder or your timeline. |

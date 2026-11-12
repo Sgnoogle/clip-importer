@@ -237,6 +237,14 @@ struct ClipGrid: View {
                 // Clic sullo spazio vuoto: deseleziona
                 Color.clear.contentShape(Rectangle()).onTapGesture { state.selectNone() }
             )
+            .background(
+                // Larghezza della griglia, per le frecce ↑ ↓ (quante clip per riga)
+                GeometryReader { geo in
+                    Color.clear
+                        .onAppear { state.gridWidth = geo.size.width }
+                        .onChange(of: geo.size.width) { state.gridWidth = $0 }
+                }
+            )
         }
         // Ogni apertura di una scheda o cartella ricostruisce la griglia: niente resti della precedente
         .id(state.openGeneration)

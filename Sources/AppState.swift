@@ -219,18 +219,67 @@ final class AppState: ObservableObject {
         anchor = nil
     }
 
+    /// Larghezza della griglia (la scrive ClipGrid): serve a sapere quante clip ci sono per riga.
+    var gridWidth: CGFloat = 0
+
+    /// Righe della griglia così come si vedono: con l'ordine per data ogni giorno comincia una riga nuova.
+    private var gridRows: [[Clip]] {
+        let spacing: CGFloat = 14, padding: CGFloat = 32       // come in ClipGrid
+        let perRow = max(1, Int((gridWidth - padding + spacing) / (CGFloat(thumbSize) + spacing)))
+        let groups = sortKey == .date ? sections.map(\.clips) : [visibleClips]
+        return groups.flatMap { g in stride(from: 0, to: g.count, by: perRow).map { Array(g[$0..<min($0 + perRow, g.count)]) } }
+    }
+
+    /// Da quale clip parte la freccia (l'ultima raggiunta, altrimenti un capo della selezione).
+    private func arrowStart(in list: [Clip], forward: Bool) -> Int? {
+        anchor.flatMap { a in list.firstIndex { $0.id == a } }
+            ?? (forward ? list.lastIndex { selection.contains($0.id) } : list.firstIndex { selection.contains($0.id) })
+    }
+
+    /// Seleziona la clip raggiunta con le frecce; con ⇧ aggiunge anche quelle in mezzo.
+    private func arrowSelect(_ target: Int, from: Int?, in list: [Clip], extend: Bool) {
+        let id = list[target].id
+        if extend {
+            let lo = min(from ?? target, target), hi = max(from ?? target, target)
+            selection.formUnion(list[lo...hi].map(\.id))
+        } else {
+            selection = [id]
+        }
+        anchor = id
+        scrollTarget = id
+    }
+
     /// Frecce ← →: passa alla clip precedente/successiva (⇧ allarga la selezione).
     func moveSelection(by step: Int, extend: Bool) {
         let list = visibleClips
         guard !list.isEmpty else { return }
-        let from = anchor.flatMap { a in list.firstIndex { $0.id == a } }
-            ?? (step > 0 ? list.lastIndex { selection.contains($0.id) } : list.firstIndex { selection.contains($0.id) })
+        let from = arrowStart(in: list, forward: step > 0)
         let target: Int
         if let from { target = min(max(from + step, 0), list.count - 1) } else { target = step > 0 ? 0 : list.count - 1 }
-        let id = list[target].id
-        if extend { selection.insert(id) } else { selection = [id] }
-        anchor = id
-        scrollTarget = id
+        arrowSelect(target, from: from, in: list, extend: extend)
+    }
+
+    /// Frecce ↑ ↓: stessa colonna nella riga sopra/sotto, come nel Finder (⇧ allarga la selezione).
+    func moveSelectionVertically(by rowStep: Int, extend: Bool) {
+        let list = visibleClips
+        guard !list.isEmpty else { return }
+        guard let from = arrowStart(in: list, forward: rowStep > 0) else {
+            arrowSelect(rowStep > 0 ? 0 : list.count - 1, from: nil, in: list, extend: extend)
+            return
+        }
+        let rows = gridRows
+        guard let r = rows.firstIndex(where: { row in row.contains { $0.id == list[from].id } }),
+              let c = rows[r].firstIndex(where: { $0.id == list[from].id }) else { return }
+        let newRow = r + rowStep
+        let clip: Clip
+        if rows.indices.contains(newRow) {
+            clip = rows[newRow][min(c, rows[newRow].count - 1)]
+        } else {
+            // Oltre la prima/ultima riga: va alla prima/ultima clip
+            clip = rowStep > 0 ? list[list.count - 1] : list[0]
+        }
+        guard let target = list.firstIndex(where: { $0.id == clip.id }) else { return }
+        arrowSelect(target, from: from, in: list, extend: extend)
     }
 
     func deleteRejected() {

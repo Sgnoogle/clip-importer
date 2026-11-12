@@ -513,20 +513,52 @@ public sealed class AppState : Observable
         RefreshItemStates();
     }
 
+    /// <summary>Da quale clip parte la freccia (l'ultima raggiunta, altrimenti un capo della selezione).</summary>
+    int ArrowStart(List<Clip> list, bool forward)
+    {
+        int from = anchor != null ? list.FindIndex(c => c.Path == anchor) : -1;
+        if (from < 0) from = forward ? list.FindLastIndex(c => selection.Contains(c.Path)) : list.FindIndex(c => selection.Contains(c.Path));
+        return from;
+    }
+
+    /// <summary>Clip da cui parte la freccia ↑ ↓ (null se non c'è selezione).</summary>
+    public Clip? ArrowCurrent(bool forward)
+    {
+        var list = VisibleClips;
+        int from = ArrowStart(list, forward);
+        return from >= 0 ? list[from] : null;
+    }
+
+    /// <summary>Seleziona la clip raggiunta con le frecce; con Maiusc aggiunge anche quelle in mezzo.</summary>
+    public Clip SelectByArrow(Clip clip, bool extend)
+    {
+        var list = VisibleClips;
+        int target = list.IndexOf(clip);
+        int from = ArrowStart(list, target > 0);
+        if (!extend) selection.Clear();
+        else if (from >= 0 && target >= 0)
+            for (int i = Math.Min(from, target); i <= Math.Max(from, target); i++) selection.Add(list[i].Path);
+        selection.Add(clip.Path);
+        anchor = clip.Path;
+        RefreshItemStates();
+        return clip;
+    }
+
     /// <summary>Frecce ← →: clip precedente/successiva (Maiusc allarga la selezione). Restituisce la clip da mostrare.</summary>
     public Clip? MoveSelection(int step, bool extend)
     {
         var list = VisibleClips;
         if (list.Count == 0) return null;
-        int from = anchor != null ? list.FindIndex(c => c.Path == anchor) : -1;
-        if (from < 0) from = step > 0 ? list.FindLastIndex(c => selection.Contains(c.Path)) : list.FindIndex(c => selection.Contains(c.Path));
+        int from = ArrowStart(list, step > 0);
         int target = from >= 0 ? Math.Clamp(from + step, 0, list.Count - 1) : (step > 0 ? 0 : list.Count - 1);
-        var clip = list[target];
-        if (!extend) selection.Clear();
-        selection.Add(clip.Path);
-        anchor = clip.Path;
-        RefreshItemStates();
-        return clip;
+        return SelectByArrow(list[target], extend);
+    }
+
+    /// <summary>Frecce ↑ ↓ senza selezione: prima o ultima clip.</summary>
+    public Clip? FirstOrLast(bool first)
+    {
+        var list = VisibleClips;
+        return list.Count == 0 ? null : first ? list[0] : list[^1];
     }
 
     public void SetImported(Clip clip, bool imported)
