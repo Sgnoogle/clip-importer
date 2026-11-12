@@ -146,6 +146,11 @@ Never `git add -A` blindly: subagent worktrees live in `.claude/` (now in `.giti
     `com.sgnoogle.clipimporter.statusitem` / "Clip Importer". Don't change that name (menu bar managers key on it).
     Bartender isn't installed on the dev Mac: the maintainer verifies on theirs. Also removed a duplicate
     `CFBundleLocalizations` key in Info.plist (the second one, only "it", overrode the full list).
+13. **Card swap showed the previous card's clips** (2026-11-12): Sony cards all use the same names (C0001.MP4)
+    and mount at the same path ("/Volumes/NO NAME", same drive letter on Windows), so the thumbnail cache and
+    the grid cells (keyed by path) reused the old card's images. Now thumbnails are keyed by path + size + date
+    (`Clip.contentKey` on Mac, `Clip.Key` on Windows), cells reload when that key changes, and the grid is rebuilt
+    on every `open()` (`openGeneration`). Never key anything about a file's content by path alone.
 
 ## Open items / ideas
 

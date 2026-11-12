@@ -22,6 +22,10 @@ struct Clip: Identifiable, Hashable {
 
     var isPhoto: Bool { kind == .photo }
 
+    /// Identità del file vero, non solo del percorso: due schede Sony hanno gli stessi nomi (C0001.MP4)
+    /// e si montano nello stesso posto ("/Volumes/NO NAME"), quindi il percorso da solo non basta.
+    var contentKey: String { "\(url.path)|\(size)|\(Int(date.timeIntervalSince1970))" }
+
     /// Byte totali da copiare (foto + eventuale RAW abbinato)
     var importSize: Int64 { size + companionsSize }
 

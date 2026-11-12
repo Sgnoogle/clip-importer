@@ -238,6 +238,8 @@ struct ClipGrid: View {
                 Color.clear.contentShape(Rectangle()).onTapGesture { state.selectNone() }
             )
         }
+        // Ogni apertura di una scheda o cartella ricostruisce la griglia: niente resti della precedente
+        .id(state.openGeneration)
         .onChange(of: state.scrollTarget) { id in
             guard let id else { return }
             withAnimation(.easeInOut(duration: 0.15)) { proxy.scrollTo(id) }
@@ -468,11 +470,15 @@ struct ClipCell: View {
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: 7))
-            .task(id: clip.id) { await loadThumbnail() }
+            .task(id: clip.contentKey) { await loadThumbnail() }
     }
 
     private func loadThumbnail() async {
-        guard thumb == nil else { return }
+        // Stesso percorso ma file diverso (altra scheda): si riparte da zero
+        thumb = nil
+        thumbFailed = false
+        loadedDuration = nil
+        generator = nil
         let result = await ThumbnailLoader.load(clip)
         let hasOwnDuration = clip.duration != nil
         await MainActor.run {
@@ -598,10 +604,10 @@ enum ThumbnailLoader {
         var duration: Double?
     }
 
-    private static let cache = NSCache<NSURL, NSImage>()
+    private static let cache = NSCache<NSString, NSImage>()
 
     static func load(_ clip: Clip) async -> Result {
-        if let cached = cache.object(forKey: clip.url as NSURL) { return Result(image: cached, duration: nil) }
+        if let cached = cache.object(forKey: clip.contentKey as NSString) { return Result(image: cached, duration: nil) }
         let result = await Task.detached(priority: .utility) { () -> Result in
             // 1) Miniatura già pronta di Sony: istantanea
             if let t = clip.thumbnailURL, let image = NSImage(contentsOf: t) {
@@ -625,7 +631,7 @@ enum ThumbnailLoader {
             }
             return Result(image: nil, duration: duration)
         }.value
-        if let image = result.image { cache.setObject(image, forKey: clip.url as NSURL) }
+        if let image = result.image { cache.setObject(image, forKey: clip.contentKey as NSString) }
         return result
     }
 

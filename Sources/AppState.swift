@@ -16,6 +16,8 @@ final class AppState: ObservableObject {
     @Published var flags: [String: Flag] = FlagStore.load()
     /// Clip da portare in vista (frecce ← →)
     @Published var scrollTarget: URL?
+    /// Cambia a ogni apertura di una sorgente (vedi ClipGrid)
+    @Published var openGeneration = UUID()
     private var anchor: URL?
     private var watcher: FolderWatcher?
     private var rescanToken: UUID?
@@ -309,12 +311,14 @@ final class AppState: ObservableObject {
             current = nil
             clips = []
             selection = []
+            watcher = nil
             if let next = orderedSources.first { open(next) }
         }
     }
 
     func open(_ source: Source) {
         current = source
+        openGeneration = UUID()
         clips = []
         selection = []
         anchor = nil

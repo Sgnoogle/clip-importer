@@ -165,7 +165,8 @@ public sealed class AppState : Observable
 
     ClipItem Item(Clip c)
     {
-        if (!items.TryGetValue(c.Path, out var item)) items[c.Path] = item = new ClipItem(c);
+        // Stesso percorso ma file diverso (altra scheda nella stessa unità): elemento nuovo, miniatura nuova
+        if (!items.TryGetValue(c.Path, out var item) || item.Clip.Key != c.Key) items[c.Path] = item = new ClipItem(c);
         else if (!ReferenceEquals(item.Clip, c)) item.Update(c);
         return item;
     }
@@ -366,7 +367,7 @@ public sealed class AppState : Observable
     public async void Open(Source source)
     {
         Current = source;
-        clips = new(); selection.Clear(); anchor = null; pendingRescan = false;
+        clips = new(); items.Clear(); selection.Clear(); anchor = null; pendingRescan = false;
         Scanning = true;
         Rebuild();
         if (!source.IsVolume) RememberFolder(source.Path);

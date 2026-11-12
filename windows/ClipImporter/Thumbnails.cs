@@ -18,9 +18,13 @@ public static class Thumbnails
 
     public sealed record Result(ImageSource? Image, double? Duration);
 
+    /// <summary>Percorso + nome/dimensione/data: due schede Sony hanno gli stessi nomi (C0001.MP4)
+    /// e spesso la stessa lettera di unità, quindi il percorso da solo non basta.</summary>
+    static string CacheKey(Clip clip) => clip.Path + "|" + clip.Key;
+
     public static async Task<Result> LoadAsync(Clip clip)
     {
-        if (cache.TryGetValue(clip.Path, out var cached)) return new Result(cached, null);
+        if (cache.TryGetValue(CacheKey(clip), out var cached)) return new Result(cached, null);
         await gate.WaitAsync().ConfigureAwait(false);
         try
         {
@@ -55,7 +59,7 @@ public static class Thumbnails
                 }
                 catch { }
             }
-            if (image != null) cache[clip.Path] = image;
+            if (image != null) cache[CacheKey(clip)] = image;
             return new Result(image, duration);
         }
         finally { gate.Release(); }
