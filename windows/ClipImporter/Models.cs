@@ -65,6 +65,9 @@ public sealed class ImportProgress
     public long BytesTotal { get; set; }
     public DateTime StartedAt { get; set; } = DateTime.Now;
     public string Verb { get; set; } = L("Importing {0}");
+    /// <summary>Byte dei file davvero importati (mostrati all'utente), senza la rilettura di verifica.</summary>
+    public long CopiedDone { get; set; }
+    public long CopiedTotal { get; set; }
 
     public double Fraction => BytesTotal > 0 ? Math.Min(1, (double)BytesDone / BytesTotal) : 0;
     public string Title => Verb.Replace("{0}", CurrentName);
@@ -74,13 +77,14 @@ public sealed class ImportProgress
     {
         get
         {
-            var parts = new List<string> { L("{0} of {1}", Fmt.Bytes(BytesDone), Fmt.Bytes(BytesTotal)) };
+            long shownTotal = CopiedTotal > 0 ? CopiedTotal : BytesTotal;
+            long shownDone = CopiedTotal > 0 ? Math.Min(CopiedDone, CopiedTotal) : BytesDone;
+            var parts = new List<string> { L("{0} of {1}", Fmt.Bytes(shownDone), Fmt.Bytes(shownTotal)) };
             var elapsed = (DateTime.Now - StartedAt).TotalSeconds;
-            if (elapsed > 2 && BytesDone > 0)
+            if (elapsed > 2 && BytesDone > 0 && shownDone > 0)
             {
-                var speed = BytesDone / elapsed;
-                parts.Add(Fmt.Bytes((long)speed) + "/s");
-                parts.Add(Fmt.Remaining((BytesTotal - BytesDone) / speed));
+                parts.Add(Fmt.Bytes((long)(shownDone / elapsed)) + "/s");
+                parts.Add(Fmt.Remaining((BytesTotal - BytesDone) / (BytesDone / elapsed)));
             }
             return string.Join(" · ", parts);
         }

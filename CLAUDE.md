@@ -153,6 +153,15 @@ Never `git add -A` blindly: subagent worktrees live in `.claude/` (now in `.giti
     (`Clip.contentKey` on Mac, `Clip.Key` on Windows), cells reload when that key changes, and the grid is rebuilt
     on every `open()` (`openGeneration`). Never key anything about a file's content by path alone.
 
+14. **Shift selection like Finder** (2026-11-19): ⇧-click and ⇧+arrows only ever added clips, so a range could
+    not be shortened (⇧-click 1→5, then ⇧-click 4 kept 5 selected). Now there is a fixed `anchor`, a moving `lead`
+    and `rangeBase` (what was selected before the range): every ⇧ action sets selection = rangeBase + anchor…lead,
+    so shrinking deselects. Plain click/arrow resets all three; ⌘-click sets anchor there and keeps the rest as base.
+    ⇧↑↓ select the linear range (like Photos/Lightroom grids). Same logic on Windows.
+15. **Progress showed double GB when moving** (2026-11-19): the verification re-read was counted as bytes to copy
+    (40 GB showed as 80). `ImportProgress` now keeps work bytes (bar, time left) separate from `copiedDone/Total`
+    (what the label shows: real file sizes). Speed shown = real bytes / elapsed.
+
 ## Open items / ideas
 
 - **Windows has not been tested on a real PC with a real card yet** (maintainer will test later). Unverified:

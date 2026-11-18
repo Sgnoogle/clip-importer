@@ -32,7 +32,11 @@ public sealed class AppState : Observable
     public bool Scanning { get => scanning; private set { if (Set(ref scanning, value)) RaiseView(); } }
 
     readonly HashSet<string> selection = new(StringComparer.OrdinalIgnoreCase);
+    // Selezione come nel Finder: anchor = punto fisso degli intervalli con Maiusc, lead = capo che si muove,
+    // rangeBase = ciò che era selezionato prima dell'intervallo (un nuovo Maiusc sostituisce l'intervallo).
     string? anchor;
+    string? lead;
+    readonly HashSet<string> rangeBase = new(StringComparer.OrdinalIgnoreCase);
     HashSet<string> importedKeys = ImportedStore.Load();
     Dictionary<string, Flag> flags = FlagStore.Load();
     FolderWatcher? watcher;
@@ -367,7 +371,7 @@ public sealed class AppState : Observable
     public async void Open(Source source)
     {
         Current = source;
-        clips = new(); items.Clear(); selection.Clear(); anchor = null; pendingRescan = false;
+        clips = new(); items.Clear(); selection.Clear(); ResetRange(); pendingRescan = false;
         Scanning = true;
         Rebuild();
         if (!source.IsVolume) RememberFolder(source.Path);
@@ -394,7 +398,9 @@ public sealed class AppState : Observable
         clips = found;
         var ids = new HashSet<string>(found.Select(c => c.Path), StringComparer.OrdinalIgnoreCase);
         selection.IntersectWith(ids);
-        if (anchor != null && !ids.Contains(anchor)) anchor = null;
+        if (anchor != null && !ids.Contains(anchor)) ResetRange();
+        if (lead != null && !ids.Contains(lead)) lead = anchor;
+        rangeBase.IntersectWith(ids);
         Rebuild();
     }
 
@@ -480,31 +486,46 @@ public sealed class AppState : Observable
     {
         if (clickCount >= 2) { ShellActions.Open(clip.Path); return; }
         if (ctrl) Toggle(clip);
-        else if (shift && anchor != null)
-        {
-            var list = VisibleClips;
-            int a = list.FindIndex(c => c.Path == anchor), b = list.FindIndex(c => c.Path == clip.Path);
-            if (a >= 0 && b >= 0) foreach (var c in list.GetRange(Math.Min(a, b), Math.Abs(a - b) + 1)) selection.Add(c.Path);
-            else { selection.Clear(); selection.Add(clip.Path); anchor = clip.Path; }
-        }
-        else if (selection.Count == 1 && selection.Contains(clip.Path)) { selection.Clear(); anchor = null; }
-        else { selection.Clear(); selection.Add(clip.Path); anchor = clip.Path; }
+        else if (shift && anchor != null && VisibleClips.Exists(c => c.Path == anchor))
+            ExtendRange(clip, VisibleClips);    // l'intervallo sostituisce quello di prima: accorciando, deseleziona
+        else if (selection.Count == 1 && selection.Contains(clip.Path)) { selection.Clear(); ResetRange(); }
+        else SelectSingle(clip);
         RefreshItemStates();
     }
 
     public void Toggle(Clip clip)
     {
         if (!selection.Remove(clip.Path)) selection.Add(clip.Path);
-        anchor = clip.Path;
+        anchor = lead = clip.Path;
+        rangeBase.Clear(); rangeBase.UnionWith(selection); rangeBase.Remove(clip.Path);
         RefreshItemStates();
     }
 
+    void SelectSingle(Clip c)
+    {
+        selection.Clear(); selection.Add(c.Path);
+        anchor = lead = c.Path;
+        rangeBase.Clear();
+    }
+
+    /// <summary>Selezione = quella di prima dell'intervallo + tutte le clip dal punto fisso a <paramref name="clip"/>.</summary>
+    void ExtendRange(Clip clip, List<Clip> list)
+    {
+        int a = list.FindIndex(c => c.Path == anchor), b = list.FindIndex(c => c.Path == clip.Path);
+        if (a < 0 || b < 0) return;
+        selection.Clear(); selection.UnionWith(rangeBase);
+        for (int i = Math.Min(a, b); i <= Math.Max(a, b); i++) selection.Add(list[i].Path);
+        lead = clip.Path;
+    }
+
+    void ResetRange() { anchor = lead = null; rangeBase.Clear(); }
+
     public bool IsSelected(Clip c) => selection.Contains(c.Path);
-    public void SelectOnly(Clip c) { selection.Clear(); selection.Add(c.Path); anchor = c.Path; RefreshItemStates(); }
-    public void SelectAll() { selection.Clear(); selection.UnionWith(VisibleClips.Select(c => c.Path)); RefreshItemStates(); }
-    public void SelectNew() { selection.Clear(); selection.UnionWith(VisibleClips.Where(c => !IsImported(c) && !IsRejected(c)).Select(c => c.Path)); RefreshItemStates(); }
-    public void SelectNone() { selection.Clear(); anchor = null; RefreshItemStates(); }
-    public void SelectFlagged(Flag f) { selection.Clear(); selection.UnionWith(VisibleClips.Where(c => FlagOf(c) == f).Select(c => c.Path)); anchor = null; RefreshItemStates(); }
+    public void SelectOnly(Clip c) { SelectSingle(c); RefreshItemStates(); }
+    public void SelectAll() { selection.Clear(); selection.UnionWith(VisibleClips.Select(c => c.Path)); ResetRange(); RefreshItemStates(); }
+    public void SelectNew() { selection.Clear(); selection.UnionWith(VisibleClips.Where(c => !IsImported(c) && !IsRejected(c)).Select(c => c.Path)); ResetRange(); RefreshItemStates(); }
+    public void SelectNone() { selection.Clear(); ResetRange(); RefreshItemStates(); }
+    public void SelectFlagged(Flag f) { selection.Clear(); selection.UnionWith(VisibleClips.Where(c => FlagOf(c) == f).Select(c => c.Path)); ResetRange(); RefreshItemStates(); }
 
     public void ToggleDay(DaySection section)
     {
@@ -513,10 +534,11 @@ public sealed class AppState : Observable
         RefreshItemStates();
     }
 
-    /// <summary>Da quale clip parte la freccia (l'ultima raggiunta, altrimenti un capo della selezione).</summary>
+    /// <summary>Da quale clip parte la freccia (il capo mobile, altrimenti un capo della selezione).</summary>
     int ArrowStart(List<Clip> list, bool forward)
     {
-        int from = anchor != null ? list.FindIndex(c => c.Path == anchor) : -1;
+        var start = lead ?? anchor;
+        int from = start != null ? list.FindIndex(c => c.Path == start) : -1;
         if (from < 0) from = forward ? list.FindLastIndex(c => selection.Contains(c.Path)) : list.FindIndex(c => selection.Contains(c.Path));
         return from;
     }
@@ -529,17 +551,22 @@ public sealed class AppState : Observable
         return from >= 0 ? list[from] : null;
     }
 
-    /// <summary>Seleziona la clip raggiunta con le frecce; con Maiusc aggiunge anche quelle in mezzo.</summary>
+    /// <summary>Seleziona la clip raggiunta con le frecce; con Maiusc l'intervallo va dal punto fisso a quella clip.</summary>
     public Clip SelectByArrow(Clip clip, bool extend)
     {
         var list = VisibleClips;
-        int target = list.IndexOf(clip);
-        int from = ArrowStart(list, target > 0);
-        if (!extend) selection.Clear();
-        else if (from >= 0 && target >= 0)
-            for (int i = Math.Min(from, target); i <= Math.Max(from, target); i++) selection.Add(list[i].Path);
-        selection.Add(clip.Path);
-        anchor = clip.Path;
+        if (!extend) SelectSingle(clip);
+        else
+        {
+            if (anchor == null || !list.Exists(c => c.Path == anchor))
+            {
+                // Primo Maiusc + freccia: il punto fisso è la clip da cui si parte
+                int from = ArrowStart(list, true);
+                anchor = from >= 0 ? list[from].Path : clip.Path;
+                rangeBase.Clear(); rangeBase.UnionWith(selection);
+            }
+            ExtendRange(clip, list);
+        }
         RefreshItemStates();
         return clip;
     }

@@ -18,7 +18,12 @@ final class AppState: ObservableObject {
     @Published var scrollTarget: URL?
     /// Cambia a ogni apertura di una sorgente (vedi ClipGrid)
     @Published var openGeneration = UUID()
+    /// Selezione come nel Finder: `anchor` è il punto fisso degli intervalli con ⇧, `lead` il capo che si muove
+    /// (clic con ⇧ o ⇧ + frecce), `rangeBase` ciò che era selezionato prima dell'intervallo. Così un nuovo ⇧
+    /// sostituisce l'intervallo precedente: se si accorcia, le clip rimaste fuori si deselezionano.
     private var anchor: URL?
+    private var lead: URL?
+    private var rangeBase: Set<URL> = []
     private var watcher: FolderWatcher?
     private var rescanToken: UUID?
     private var pendingRescan = false
@@ -216,7 +221,7 @@ final class AppState: ObservableObject {
 
     func selectFlagged(_ f: Flag) {
         selection = Set(visibleClips.filter { flag($0) == f }.map(\.id))
-        anchor = nil
+        resetRange()
     }
 
     /// Larghezza della griglia (la scrive ClipGrid): serve a sapere quante clip ci sono per riga.
@@ -230,23 +235,43 @@ final class AppState: ObservableObject {
         return groups.flatMap { g in stride(from: 0, to: g.count, by: perRow).map { Array(g[$0..<min($0 + perRow, g.count)]) } }
     }
 
-    /// Da quale clip parte la freccia (l'ultima raggiunta, altrimenti un capo della selezione).
+    /// Da quale clip parte la freccia (il capo mobile, altrimenti un capo della selezione).
     private func arrowStart(in list: [Clip], forward: Bool) -> Int? {
-        anchor.flatMap { a in list.firstIndex { $0.id == a } }
+        (lead ?? anchor).flatMap { a in list.firstIndex { $0.id == a } }
             ?? (forward ? list.lastIndex { selection.contains($0.id) } : list.firstIndex { selection.contains($0.id) })
     }
 
-    /// Seleziona la clip raggiunta con le frecce; con ⇧ aggiunge anche quelle in mezzo.
+    /// Seleziona la clip raggiunta con le frecce; con ⇧ l'intervallo va dal punto fisso a quella clip.
     private func arrowSelect(_ target: Int, from: Int?, in list: [Clip], extend: Bool) {
         let id = list[target].id
         if extend {
-            let lo = min(from ?? target, target), hi = max(from ?? target, target)
-            selection.formUnion(list[lo...hi].map(\.id))
+            if anchor.flatMap({ a in list.firstIndex { $0.id == a } }) == nil {
+                // Primo ⇧ + freccia: il punto fisso è la clip da cui si parte
+                anchor = from.map { list[$0].id } ?? id
+                rangeBase = selection
+            }
+            extendRange(to: id, in: list)
         } else {
             selection = [id]
+            anchor = id
+            lead = id
+            rangeBase = []
         }
-        anchor = id
         scrollTarget = id
+    }
+
+    /// Selezione = quella di prima dell'intervallo + tutte le clip dal punto fisso a `id` (comprese).
+    private func extendRange(to id: URL, in list: [Clip]) {
+        guard let a = anchor.flatMap({ a in list.firstIndex { $0.id == a } }),
+              let b = list.firstIndex(where: { $0.id == id }) else { return }
+        selection = rangeBase.union(list[min(a, b)...max(a, b)].map(\.id))
+        lead = id
+    }
+
+    private func resetRange() {
+        anchor = nil
+        lead = nil
+        rangeBase = []
     }
 
     /// Frecce ← →: passa alla clip precedente/successiva (⇧ allarga la selezione).
@@ -370,7 +395,7 @@ final class AppState: ObservableObject {
         openGeneration = UUID()
         clips = []
         selection = []
-        anchor = nil
+        resetRange()
         scanning = true
         pendingRescan = false
         let url = source.id
@@ -407,7 +432,9 @@ final class AppState: ObservableObject {
             let ids = Set(found.map(\.id))
             clips = found
             selection.formIntersection(ids)
-            if let a = anchor, !ids.contains(a) { anchor = nil }
+            if let a = anchor, !ids.contains(a) { resetRange() }
+            if let l = lead, !ids.contains(l) { lead = anchor }
+            rangeBase.formIntersection(ids)
         }
     }
 
@@ -505,33 +532,31 @@ final class AppState: ObservableObject {
         let flags = NSEvent.modifierFlags
         if flags.contains(.command) {
             toggle(clip)
-        } else if flags.contains(.shift), let anchor {
-            let list = visibleClips
-            if let a = list.firstIndex(where: { $0.id == anchor }),
-               let b = list.firstIndex(where: { $0.id == clip.id }) {
-                selection.formUnion(list[min(a, b)...max(a, b)].map(\.id))
-            } else {
-                selection = [clip.id]
-                self.anchor = clip.id
-            }
+        } else if flags.contains(.shift), let anchor, visibleClips.contains(where: { $0.id == anchor }) {
+            // Come nel Finder: l'intervallo va dal punto fisso alla clip cliccata e sostituisce quello di prima
+            extendRange(to: clip.id, in: visibleClips)
         } else if selection == [clip.id] {
             // Riclic sull'unica selezionata: la deseleziona
             selection = []
-            anchor = nil
+            resetRange()
         } else {
             selection = [clip.id]
             anchor = clip.id
+            lead = clip.id
+            rangeBase = []
         }
     }
 
     func toggle(_ clip: Clip) {
         if selection.contains(clip.id) { selection.remove(clip.id) } else { selection.insert(clip.id) }
         anchor = clip.id
+        lead = clip.id
+        rangeBase = selection.subtracting([clip.id])
     }
 
-    func selectAll() { selection = Set(visibleClips.map(\.id)) }
-    func selectNew() { selection = Set(visibleClips.filter { !isImported($0) && !isRejected($0) }.map(\.id)) }
-    func selectNone() { selection = []; anchor = nil }
+    func selectAll() { selection = Set(visibleClips.map(\.id)); resetRange() }
+    func selectNew() { selection = Set(visibleClips.filter { !isImported($0) && !isRejected($0) }.map(\.id)); resetRange() }
+    func selectNone() { selection = []; resetRange() }
 
     func isDaySelected(_ section: DaySection) -> Bool {
         section.clips.allSatisfy { selection.contains($0.id) }

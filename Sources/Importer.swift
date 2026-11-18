@@ -84,20 +84,39 @@ enum Importer {
         }
         var sonyIndexRemovals: [URL: [String]] = [:]    // M4ROOT → nomi delle clip da togliere da MEDIAPRO.XML
         var done: Int64 = 0
+        var copied: Int64 = 0       // byte mostrati all'utente: copie vere, senza le riletture di verifica
         var lastReport = Date.distantPast
         var current = ImportProgress(fileIndex: 0, fileCount: clips.count, currentName: "",
                                      bytesDone: 0, bytesTotal: total, startedAt: start)
+        current.copiedTotal = clips.reduce(Int64(0)) { $0 + $1.importSize + (o.copyProxy ? ($1.proxySize ?? 0) : 0) }
+        // Mostrati: la parte "copia" del lavoro. Spostando, metà di ogni file è copia e metà verifica.
+        var clipWorkStart: Int64 = 0, clipCopiedStart: Int64 = 0
+        var clipShown: Int64 = 0, clipWork: Int64 = 0
 
         func report(force: Bool = false) {
             let now = Date()
             guard force || now.timeIntervalSince(lastReport) > 0.15 else { return }
             lastReport = now
+            if clipWork > 0 {
+                copied = clipCopiedStart + min(clipShown, (done - clipWorkStart) * clipShown / clipWork)
+            }
             current.bytesDone = done
+            current.copiedDone = copied
             progress(current)
         }
 
         for (index, clip) in clips.enumerated() {
             if cancel.isCancelled { result.cancelled = true; break }
+            // A fine clip i byte mostrati sono esatti, qualunque strada abbia preso la clip precedente
+            if index > 0 {
+                let prev = clips[index - 1]
+                clipCopiedStart += prev.importSize + (o.copyProxy ? (prev.proxySize ?? 0) : 0)
+                copied = clipCopiedStart
+            }
+            clipWorkStart = done
+            let proxyShare = o.copyProxy ? (clip.proxySize ?? 0) : 0
+            clipShown = clip.importSize + proxyShare
+            clipWork = clip.importSize * (moving ? 2 : 1) + proxyShare
             current.fileIndex = index
             current.currentName = clip.name
             current.verb = L("Importing {0}")
@@ -114,7 +133,7 @@ enum Importer {
                 if fm.fileExists(atPath: dst.path), fileSize(dst) == clip.size,
                    try !moving || sameContents(clip.url, dst, cancel: cancel, onBytes: { n in done += n; report() }) {
                     // Stesso file già presente: non lo ricopio (ma completo l'eventuale RAW mancante)
-                    if !moving { done += clip.size }
+                    done += clip.size     // spostando, sameContents ha contato la rilettura: questa è la "copia"
                     current.verb = L("Importing {0}")
                     let pairs = try copyCompanions(of: clip, base: dst.deletingPathExtension().lastPathComponent,
                                                    in: folder, verify: moving, cancel: cancel) { n in done += n; report() }

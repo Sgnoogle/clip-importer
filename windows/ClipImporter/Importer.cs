@@ -73,13 +73,17 @@ public static class Importer
         var sonyIndexRemovals = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
         long done = 0;
         var lastReport = DateTime.MinValue;
-        var current = new ImportProgress { FileCount = clips.Count, BytesTotal = total, StartedAt = start };
+        var current = new ImportProgress { FileCount = clips.Count, BytesTotal = total, StartedAt = start,
+            CopiedTotal = clips.Sum(c => c.ImportSize + (o.CopyProxy ? c.ProxySize : 0)) };
+        // Byte mostrati all'utente: la parte "copia" del lavoro (spostando, metà di ogni file è verifica)
+        long clipWorkStart = 0, clipCopiedStart = 0, clipShown = 0, clipWork = 0;
 
         void Report(bool force = false)
         {
             var now = DateTime.Now;
             if (!force && (now - lastReport).TotalSeconds < 0.15) return;
             lastReport = now;
+            if (clipWork > 0) current.CopiedDone = clipCopiedStart + Math.Min(clipShown, (done - clipWorkStart) * clipShown / clipWork);
             current.BytesDone = done;
             progress(current.Clone());
         }
@@ -89,6 +93,10 @@ public static class Importer
         {
             var clip = clips[index];
             if (cancel.IsCancellationRequested) { result.Cancelled = true; break; }
+            if (index > 0) clipCopiedStart += clips[index - 1].ImportSize + (o.CopyProxy ? clips[index - 1].ProxySize : 0);
+            clipWorkStart = done;
+            clipShown = clip.ImportSize + (o.CopyProxy ? clip.ProxySize : 0);
+            clipWork = clip.ImportSize * (moving ? 2 : 1) + (o.CopyProxy ? clip.ProxySize : 0);
             current.FileIndex = index;
             current.CurrentName = clip.Name;
             current.Verb = L("Importing {0}");
@@ -105,7 +113,7 @@ public static class Importer
                 if (File.Exists(dst) && SizeOf(dst) == clip.Size && (!moving || SameContents(clip.Path, dst, cancel, OnBytes)))
                 {
                     // Stesso file già presente: non lo ricopio (ma completo l'eventuale RAW mancante)
-                    if (!moving) done += clip.Size;
+                    done += clip.Size;     // spostando, SameContents ha contato la rilettura: questa è la "copia"
                     current.Verb = L("Importing {0}");
                     var pairs = CopyCompanions(clip, System.IO.Path.GetFileNameWithoutExtension(dst), folder, moving, cancel, OnBytes);
                     verifiedPairs.Add((clip.Path, dst)); verifiedPairs.AddRange(pairs);

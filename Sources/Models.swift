@@ -123,22 +123,27 @@ struct ImportProgress {
     var fileIndex: Int
     var fileCount: Int
     var currentName: String
+    /// Lavoro fatto/totale (barra e tempo rimanente): spostando comprende anche la rilettura di verifica.
     var bytesDone: Int64
     var bytesTotal: Int64
     var startedAt: Date
     var verb = L("Importing {0}")
+    /// Byte dei file davvero importati (quelli mostrati all'utente): senza la verifica, che non è un secondo file.
+    var copiedDone: Int64 = 0
+    var copiedTotal: Int64 = 0
 
     var fraction: Double {
         bytesTotal > 0 ? min(1, Double(bytesDone) / Double(bytesTotal)) : 0
     }
 
     var detail: String {
-        var parts = [L("{0} of {1}", Fmt.bytes(bytesDone), Fmt.bytes(bytesTotal))]
+        let shownTotal = copiedTotal > 0 ? copiedTotal : bytesTotal
+        let shownDone = copiedTotal > 0 ? min(copiedDone, copiedTotal) : bytesDone
+        var parts = [L("{0} of {1}", Fmt.bytes(shownDone), Fmt.bytes(shownTotal))]
         let elapsed = Date().timeIntervalSince(startedAt)
-        if elapsed > 2, bytesDone > 0 {
-            let speed = Double(bytesDone) / elapsed
-            parts.append("\(Fmt.bytes(Int64(speed)))/s")
-            parts.append(Fmt.remaining(Double(bytesTotal - bytesDone) / speed))
+        if elapsed > 2, bytesDone > 0, shownDone > 0 {
+            parts.append("\(Fmt.bytes(Int64(Double(shownDone) / elapsed)))/s")
+            parts.append(Fmt.remaining(Double(bytesTotal - bytesDone) / (Double(bytesDone) / elapsed)))
         }
         return parts.joined(separator: " · ")
     }
