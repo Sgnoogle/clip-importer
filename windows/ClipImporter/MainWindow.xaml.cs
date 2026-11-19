@@ -32,6 +32,20 @@ public partial class MainWindow : Window
         };
         foreach (var m in state.FolderModes) FolderModeBox.Items.Add(new ComboBoxItem { Content = Labels.Of(m), Tag = m });
         FolderModeBox.SelectedIndex = (int)state.FolderMode;
+        // Il percorso di destinazione si prende tutto lo spazio libero della barra in basso (come sul Mac):
+        // allargando la finestra si vede intero; il pulsante Importa non si accorcia mai.
+        foreach (var el in new FrameworkElement[] { BottomOptions, OrganizePanel, ImportPanel, OptionsButton, ChangeDestButton })
+            el.SizeChanged += (_, _) => FitDestination();
+    }
+
+    void FitDestination()
+    {
+        if (BottomOptions.ActualWidth <= 0) return;
+        double others = OrganizePanel.ActualWidth + 33          // divisore: 1 + margini 16+16
+                        + ImportPanel.ActualWidth + OptionsButton.ActualWidth + 14
+                        + 24;                                     // un po' di respiro prima della rotella
+        double around = DestIcon.ActualWidth + 6 + ChangeDestButton.ActualWidth + 8;
+        DestText.MaxWidth = System.Math.Max(120, BottomOptions.ActualWidth - others - around);
     }
 
     void ApplyTexts()

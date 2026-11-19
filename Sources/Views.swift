@@ -695,14 +695,17 @@ struct ImportBar: View {
                 Text(L("IMPORT TO")).font(.system(size: 10, weight: .semibold)).foregroundStyle(.secondary)
                 HStack(spacing: 6) {
                     Image(systemName: "folder.fill").foregroundStyle(.tint)
+                    // Il percorso si prende tutto lo spazio libero della barra (come la barra del percorso del Finder):
+                    // allargando la finestra si vede intero, "…" al centro solo quando davvero non ci sta.
                     Text(state.destinationDisplay)
                         .lineLimit(1)
                         .truncationMode(.middle)
-                        .frame(maxWidth: 240, alignment: .leading)
+                        .frame(minWidth: 120, alignment: .leading)
                         .help(state.destinationPath)
-                    Button(L("Change…")) { state.chooseDestination() }.controlSize(.small)
+                    Button(L("Change…")) { state.chooseDestination() }.controlSize(.small).fixedSize()
                 }
             }
+            .layoutPriority(2)
 
             Divider().frame(height: 36)
 
@@ -725,7 +728,9 @@ struct ImportBar: View {
                     .foregroundStyle(.tertiary)
                     .lineLimit(1)
                     .truncationMode(.middle)
+                    .frame(minWidth: 140, alignment: .leading)
             }
+            .layoutPriority(1)
 
             Spacer(minLength: 8)
 
@@ -765,6 +770,7 @@ struct ImportBar: View {
                           ? L("Each file is deleted from the card only after verifying that the copy is identical")
                           : L("Originals go to the Trash only after verifying that the copy is identical"))
             }
+            .fixedSize() // il pulsante Importa e la casella non si accorciano mai: cede il percorso
         }
     }
 }
