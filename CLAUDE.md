@@ -161,6 +161,12 @@ Never `git add -A` blindly: subagent worktrees live in `.claude/` (now in `.giti
 15. **Progress showed double GB when moving** (2026-11-19): the verification re-read was counted as bytes to copy
     (40 GB showed as 80). `ImportProgress` now keeps work bytes (bar, time left) separate from `copiedDone/Total`
     (what the label shows: real file sizes). Speed shown = real bytes / elapsed.
+16. **Long destination paths were cut** (2026-11-20, v1.6): the "Import to" path had a fixed max width (240 pt), so
+    `/Volumes/Crucial X…edia/Videos/B Roll` was truncated even with free space next to it. Now it takes all the free
+    space of the bottom bar, like the Finder path bar: full when the window is wide, middle "…" only when it really
+    doesn't fit (tooltip = full path). The Import button and the delete checkbox are `fixedSize` and never shrink
+    (first try squeezed them). Mac: layout priorities (path 2, organize 1). Windows: the DockPanel can't do that, so
+    `FitDestination()` sets the path's MaxWidth from the free space on every SizeChanged.
 
 ## Open items / ideas
 
