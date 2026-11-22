@@ -24,14 +24,24 @@ public sealed class ClipItem : Observable
     public ClipItem(Clip clip) { Clip = clip; }
 
     public Clip Clip { get; private set; }
-    public string Name => Clip.Name;
+    /// <summary>Con i soli file che verranno importati (foto RAW + JPEG).</summary>
+    Clip Prepared => AppState.Shared.Prepared(Clip);
+    public string Name => Prepared.Name;
     public bool IsPhoto => Clip.IsPhoto;
     public string? TechLabel => Clip.TechLabel;
-    public string TimeSize => $"{Fmt.Time(Clip.Date)} · {Fmt.Bytes(Clip.ImportSize)}";
+    public string TimeSize => $"{Fmt.Time(Clip.Date)} · {Fmt.Bytes(Prepared.ImportSize)}";
     public string Tooltip => Fmt.DateTimeShort(Clip.Date);
 
     /// <summary>Aggiorna i dati dopo una nuova lettura della scheda, tenendo la miniatura già caricata.</summary>
     public void Update(Clip clip) { Clip = clip; RaiseAll(); }
+
+    /// <summary>È cambiata la scelta RAW / JPEG.</summary>
+    public void FormatChanged()
+    {
+        Raise(nameof(Name)); Raise(nameof(TimeSize));
+        Raise(nameof(BadgeRaw)); Raise(nameof(BadgePlus)); Raise(nameof(BadgeEnd));
+        Raise(nameof(BadgeRawLine)); Raise(nameof(BadgeEndLine)); Raise(nameof(BadgeRawBrush)); Raise(nameof(BadgeEndBrush));
+    }
 
     bool selected;
     public bool IsSelected { get => selected; set { if (Set(ref selected, value)) { Raise(nameof(Dim)); Raise(nameof(ShowSelectCircle)); } } }
@@ -71,6 +81,21 @@ public sealed class ClipItem : Observable
     double? loadedDuration;
     public string? Badge => Clip.IsPhoto ? Clip.Badge : (Clip.Duration ?? loadedDuration) is double d ? Fmt.Duration(d) : null;
 
+    // "RAW + JPEG" in tre pezzi: il formato che non verrà importato è barrato
+    static readonly Brush FadedWhite = MakeFaded();
+    static Brush MakeFaded() { var b = new SolidColorBrush(Color.FromArgb(0x80, 255, 255, 255)); b.Freeze(); return b; }
+    static readonly System.Windows.TextDecorationCollection NoLine = MakeNoLine();
+    static System.Windows.TextDecorationCollection MakeNoLine() { var d = new System.Windows.TextDecorationCollection(); d.Freeze(); return d; }
+    bool RawOut => Clip.IsRawPair && AppState.Shared.PhotoFormat == PhotoFormat.Processed;
+    bool EndOut => Clip.IsRawPair && AppState.Shared.PhotoFormat == PhotoFormat.Raw;
+    public string BadgeRaw => Clip.IsRawPair ? "RAW" : Badge ?? "";
+    public string BadgePlus => Clip.IsRawPair ? " + " : "";
+    public string BadgeEnd => Clip.IsRawPair ? Clip.ProcessedLabel : "";
+    public System.Windows.TextDecorationCollection BadgeRawLine => RawOut ? System.Windows.TextDecorations.Strikethrough : NoLine;
+    public System.Windows.TextDecorationCollection BadgeEndLine => EndOut ? System.Windows.TextDecorations.Strikethrough : NoLine;
+    public Brush BadgeRawBrush => RawOut ? FadedWhite : Brushes.White;
+    public Brush BadgeEndBrush => EndOut ? FadedWhite : Brushes.White;
+
     public string RibbonTooltip => flag switch
     {
         Flag.Pick => L("Picked: only picks get imported · click to remove · Alt+click to reject"),
@@ -88,7 +113,7 @@ public sealed class ClipItem : Observable
         if (Clip.Duration == null) loadedDuration = r.Duration;
         thumbLoaded = true;
         Raise(nameof(DisplayImage)); Raise(nameof(ThumbFailed)); Raise(nameof(ThumbLoading));
-        Raise(nameof(IsPortrait)); Raise(nameof(ImageStretch)); Raise(nameof(Badge));
+        Raise(nameof(IsPortrait)); Raise(nameof(ImageStretch)); Raise(nameof(Badge)); Raise(nameof(BadgeRaw));
     }
     bool loading;
 }

@@ -220,7 +220,11 @@
       "⚠️ It hasn't been imported yet.\n\n": "⚠️ Non è ancora stata importata.\n\n",
       "⚠️ None of them has been imported yet.\n\n": "⚠️ Nessuna è ancora stata importata.\n\n",
       "⚠️ {0} haven't been imported yet.\n\n": "⚠️ {0} non sono ancora state importate.\n\n",
-      "{0} bytes": "{0} byte"
+      "{0} bytes": "{0} byte",
+      "Both": "Entrambi",
+      "{0} only": "Solo {0}",
+      "Choose which files to import from {0} photos. When moving, the other file stays where it is.": "Scegli quali file importare delle foto {0}. Se sposti, l'altro file resta dov'è.",
+      " · {0} files left where they were": " · file {0} lasciati dov'erano"
     },
     "es": {
       " (moved to the Trash)": " (a la Papelera)",
@@ -429,7 +433,11 @@
       "{0} selected": "{0} seleccionados",
       "⚠️ It hasn't been imported yet.\n\n": "⚠️ Todavía no se ha importado.\n\n",
       "⚠️ None of them has been imported yet.\n\n": "⚠️ Ninguno se ha importado todavía.\n\n",
-      "⚠️ {0} haven't been imported yet.\n\n": "⚠️ {0} aún no se han importado.\n\n"
+      "⚠️ {0} haven't been imported yet.\n\n": "⚠️ {0} aún no se han importado.\n\n",
+      "Both": "Ambos",
+      "{0} only": "Solo {0}",
+      "Choose which files to import from {0} photos. When moving, the other file stays where it is.": "Elige qué archivos importar de las fotos {0}. Al mover, el otro archivo se queda donde está.",
+      " · {0} files left where they were": " · archivos {0} sin mover"
     },
     "fr": {
       " (moved to the Trash)": " (placé dans la Corbeille)",
@@ -638,7 +646,11 @@
       "{0} selected": "{0} sélectionnés",
       "⚠️ It hasn't been imported yet.\n\n": "⚠️ Cet élément n'a pas encore été importé.\n\n",
       "⚠️ None of them has been imported yet.\n\n": "⚠️ Aucun n'a encore été importé.\n\n",
-      "⚠️ {0} haven't been imported yet.\n\n": "⚠️ {0} n'ont pas encore été importés.\n\n"
+      "⚠️ {0} haven't been imported yet.\n\n": "⚠️ {0} n'ont pas encore été importés.\n\n",
+      "Both": "Les deux",
+      "{0} only": "{0} seul",
+      "Choose which files to import from {0} photos. When moving, the other file stays where it is.": "Choisissez les fichiers à importer pour les photos {0}. En déplaçant, l'autre fichier reste où il est.",
+      " · {0} files left where they were": " · fichiers {0} laissés sur place"
     },
     "de": {
       " (moved to the Trash)": " (in den Papierkorb)",
@@ -847,7 +859,11 @@
       "{0} selected": "{0} ausgewählt",
       "⚠️ It hasn't been imported yet.\n\n": "⚠️ Es wurde noch nicht importiert.\n\n",
       "⚠️ None of them has been imported yet.\n\n": "⚠️ Keines davon wurde bisher importiert.\n\n",
-      "⚠️ {0} haven't been imported yet.\n\n": "⚠️ {0} wurden noch nicht importiert.\n\n"
+      "⚠️ {0} haven't been imported yet.\n\n": "⚠️ {0} wurden noch nicht importiert.\n\n",
+      "Both": "Beide",
+      "{0} only": "Nur {0}",
+      "Choose which files to import from {0} photos. When moving, the other file stays where it is.": "Wähle, welche Dateien von {0}-Fotos importiert werden. Beim Bewegen bleibt die andere Datei, wo sie ist.",
+      " · {0} files left where they were": " · {0}-Dateien nicht bewegt"
     },
     "pt": {
       " (moved to the Trash)": " (para a Lixeira)",
@@ -1056,7 +1072,11 @@
       "{0} selected": "{0} selecionados",
       "⚠️ It hasn't been imported yet.\n\n": "⚠️ Ainda não foi importado.\n\n",
       "⚠️ None of them has been imported yet.\n\n": "⚠️ Nenhum deles foi importado ainda.\n\n",
-      "⚠️ {0} haven't been imported yet.\n\n": "⚠️ {0} ainda não foram importados.\n\n"
+      "⚠️ {0} haven't been imported yet.\n\n": "⚠️ {0} ainda não foram importados.\n\n",
+      "Both": "Ambos",
+      "{0} only": "Só {0}",
+      "Choose which files to import from {0} photos. When moving, the other file stays where it is.": "Escolha quais arquivos importar das fotos {0}. Ao mover, o outro arquivo fica onde está.",
+      " · {0} files left where they were": " · arquivos {0} não movidos"
     },
     "ru": {
       " (moved to the Trash)": " (в Корзину)",
@@ -1298,7 +1318,11 @@
       "⚠️ {0} haven't been imported yet.\n\n": "⚠️ Еще не импортировано: {0}.\n\n",
       "⚠️ {0} haven't been imported yet.\n\n#few": "⚠️ Еще не импортировано: {0}.\n\n",
       "⚠️ {0} haven't been imported yet.\n\n#many": "⚠️ Еще не импортировано: {0}.\n\n",
-      "⚠️ {0} haven't been imported yet.\n\n#one": "⚠️ Еще не импортировано: {0}.\n\n"
+      "⚠️ {0} haven't been imported yet.\n\n#one": "⚠️ Еще не импортировано: {0}.\n\n",
+      "Both": "Оба",
+      "{0} only": "Только {0}",
+      "Choose which files to import from {0} photos. When moving, the other file stays where it is.": "Выберите, какие файлы импортировать для фото {0}. При перемещении другой файл остаётся на месте.",
+      " · {0} files left where they were": " · файлы {0} остались на месте"
     },
     "ja": {
       " (moved to the Trash)": " (ゴミ箱へ)",
@@ -1507,7 +1531,11 @@
       "{0} selected": "{0}件を選択中",
       "⚠️ It hasn't been imported yet.\n\n": "⚠️ まだ読み込まれていません。\n\n",
       "⚠️ None of them has been imported yet.\n\n": "⚠️ どれもまだ読み込まれていません。\n\n",
-      "⚠️ {0} haven't been imported yet.\n\n": "⚠️ まだ読み込まれていない項目が{0}件あります。\n\n"
+      "⚠️ {0} haven't been imported yet.\n\n": "⚠️ まだ読み込まれていない項目が{0}件あります。\n\n",
+      "Both": "両方",
+      "{0} only": "{0}のみ",
+      "Choose which files to import from {0} photos. When moving, the other file stays where it is.": "{0}の写真から読み込むファイルを選びます。移動する場合、もう一方のファイルは元の場所に残ります。",
+      " · {0} files left where they were": " · {0}ファイルは元の場所に残しました"
     },
     "ko": {
       " (moved to the Trash)": " (휴지통으로)",
@@ -1716,7 +1744,11 @@
       "{0} selected": "{0}개 선택됨",
       "⚠️ It hasn't been imported yet.\n\n": "⚠️ 아직 가져오지 않은 항목입니다.\n\n",
       "⚠️ None of them has been imported yet.\n\n": "⚠️ 아직 가져온 항목이 없습니다.\n\n",
-      "⚠️ {0} haven't been imported yet.\n\n": "⚠️ 아직 가져오지 않은 항목이 {0}개 있습니다.\n\n"
+      "⚠️ {0} haven't been imported yet.\n\n": "⚠️ 아직 가져오지 않은 항목이 {0}개 있습니다.\n\n",
+      "Both": "둘 다",
+      "{0} only": "{0}만",
+      "Choose which files to import from {0} photos. When moving, the other file stays where it is.": "{0} 사진에서 가져올 파일을 선택하세요. 이동할 때 다른 파일은 원래 위치에 남습니다.",
+      " · {0} files left where they were": " · {0} 파일은 원래 위치에 남김"
     },
     "zh": {
       " (moved to the Trash)": " (移到废纸篓)",
@@ -1925,7 +1957,11 @@
       "{0} selected": "已选择 {0} 个",
       "⚠️ It hasn't been imported yet.\n\n": "⚠️ 尚未导入。\n\n",
       "⚠️ None of them has been imported yet.\n\n": "⚠️ 均尚未导入。\n\n",
-      "⚠️ {0} haven't been imported yet.\n\n": "⚠️ 其中 {0} 个尚未导入。\n\n"
+      "⚠️ {0} haven't been imported yet.\n\n": "⚠️ 其中 {0} 个尚未导入。\n\n",
+      "Both": "两者",
+      "{0} only": "仅 {0}",
+      "Choose which files to import from {0} photos. When moving, the other file stays where it is.": "选择从 {0} 照片中导入哪些文件。移动时，另一个文件会保留在原处。",
+      " · {0} files left where they were": " · {0} 文件保留在原处"
     }
   }
 }

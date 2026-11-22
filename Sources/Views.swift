@@ -53,7 +53,7 @@ struct ContentView: View {
                     .padding(.vertical, 10)
                     .background(.regularMaterial, in: Capsule())
                     .shadow(color: .black.opacity(0.15), radius: 8, y: 2)
-                    .padding(.bottom, 92)
+                    .padding(.bottom, state.showsPhotoFormat ? 114 : 92)   // sopra la barra in basso
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
@@ -269,7 +269,7 @@ struct ClipGrid: View {
             .id(clip.id)
             .onTapGesture { state.click(clip) }
             // Trascina la clip nel Finder o direttamente in DaVinci Resolve
-            .onDrag { NSItemProvider(object: clip.url as NSURL) }
+            .onDrag { NSItemProvider(object: state.prepared(clip).url as NSURL) }
             .contextMenu {
                 Button(clip.isPhoto ? L("Open") : L("Play")) { NSWorkspace.shared.open(clip.url) }
                 Button(L("Show in Finder")) { NSWorkspace.shared.activateFileViewerSelecting([clip.url]) }
@@ -348,6 +348,19 @@ struct ClipCell: View {
 
     private var duration: Double? { clip.duration ?? loadedDuration }
 
+    /// Con i soli file che verranno importati (foto RAW + JPEG)
+    private var prepared: Clip { state.prepared(clip) }
+
+    /// "RAW + JPEG": il formato che non verrà importato è barrato.
+    private func badgeText(_ badge: String) -> Text {
+        guard clip.isRawPair, state.photoFormat != .both else { return Text(badge) }
+        func part(_ name: String, _ wanted: Bool) -> Text {
+            wanted ? Text(name) : Text(name).strikethrough().foregroundColor(.white.opacity(0.5))
+        }
+        return part("RAW", state.photoFormat == .raw) + Text(" + ").foregroundColor(.white.opacity(0.5))
+            + part(clip.processedLabel, state.photoFormat == .processed)
+    }
+
     /// Scartate e già importate si sbiadiscono, ma il segnalibro resta pieno e leggibile.
     private var dim: Double {
         if flag == .reject { return selected ? 0.6 : 0.4 }
@@ -359,7 +372,7 @@ struct ClipCell: View {
             thumbnail
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 4) {
-                    Text(clip.name)
+                    Text(prepared.name)
                         .font(.system(size: 12, weight: .semibold))
                         .lineLimit(1)
                         .opacity(dim)
@@ -371,7 +384,7 @@ struct ClipCell: View {
                             .help(L("Already imported"))
                     }
                 }
-                Text("\(Fmt.time(clip.date)) · \(Fmt.bytes(clip.importSize))")
+                Text("\(Fmt.time(clip.date)) · \(Fmt.bytes(prepared.importSize))")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -429,7 +442,7 @@ struct ClipCell: View {
             )
             .overlay(alignment: .bottomTrailing) {
                 if clip.isPhoto, let badge = clip.badge {
-                    Text(badge)
+                    badgeText(badge)
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundColor(.white)
                         .padding(.horizontal, 5)
@@ -762,6 +775,21 @@ struct ImportBar: View {
                 .help(state.usingPicks ? L("Imports the new picked items (rejected ones are never imported)") : state.willMove
                       ? L("Copies, verifies byte by byte, then deletes the originals {0} (⌥⌘I)", state.sourcePlace)
                       : L("With nothing selected, imports everything new (⌘I) · hold ⌥ to move"))
+
+                // Sotto il pulsante: non toglie larghezza alla barra. Si vede solo se ci sono foto RAW + JPEG.
+                if state.showsPhotoFormat {
+                    HStack(spacing: 6) {
+                        Text("RAW + \(state.processedLabel)").font(.system(size: 11)).foregroundStyle(.secondary)
+                        Picker("", selection: $state.photoFormat) {
+                            ForEach(PhotoFormat.allCases) { Text($0.label(processed: state.processedLabel)).tag($0) }
+                        }
+                        .labelsHidden()
+                        .controlSize(.small)
+                        .fixedSize()
+                    }
+                    .help(L("Choose which files to import from {0} photos. When moving, the other file stays where it is.",
+                            "RAW + \(state.processedLabel)"))
+                }
 
                 Toggle(L("Delete {0} after copying", state.sourcePlace), isOn: $state.deleteAfter)
                     .toggleStyle(.checkbox)

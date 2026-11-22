@@ -178,7 +178,12 @@ public static class CardScanner
         var main = sorted[0];
         var others = sorted.Skip(1).ToList();
         var (size, fileDate) = FileInfoOf(main);
-        long otherSize = others.Sum(o => { try { return new FileInfo(o).Length; } catch { return 0L; } });
+        var parts = sorted.Select(p =>
+        {
+            try { var fi = new FileInfo(p); return new PhotoPart(p, fi.Length, fi.LastWriteTimeUtc, IsRaw(p)); }
+            catch { return new PhotoPart(p, 0, DateTime.UnixEpoch, IsRaw(p)); }
+        }).ToList();
+        long otherSize = parts.Skip(1).Sum(p => p.Size);
 
         var (exifDate, resolution) = ReadPhotoInfo(main);
         bool hasRaw = files.Any(IsRaw);
@@ -189,7 +194,7 @@ public static class CardScanner
         return new Clip
         {
             Path = main, Size = size, Date = exifDate ?? fileDate, Resolution = resolution, Kind = MediaKind.Photo,
-            Companions = others, CompanionsSize = otherSize, Badge = badge,
+            Companions = others, CompanionsSize = otherSize, Parts = parts, Badge = badge,
         };
     }
 

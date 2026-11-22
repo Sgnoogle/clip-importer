@@ -167,6 +167,15 @@ Never `git add -A` blindly: subagent worktrees live in `.claude/` (now in `.giti
     doesn't fit (tooltip = full path). The Import button and the delete checkbox are `fixedSize` and never shrink
     (first try squeezed them). Mac: layout priorities (path 2, organize 1). Windows: the DockPanel can't do that, so
     `FitDestination()` sets the path's MaxWidth from the free space on every SizeChanged.
+17. **RAW + JPEG choice** (2026-11-22, user report): a pair always imported both files. Now a "RAW + JPEG" pop-up
+    (Both / JPEG only / RAW only, remembered, default Both) under the Import button, shown only when there are pairs.
+    Not a separate column: at 980 pt the bar overflowed in Russian. One item per pair stays (not split); the excluded
+    format is struck through in the badge, name and size are those of what gets imported. Single JPEGs/RAWs ignore it.
+    `Clip.restricted(to:)` builds the job with only the chosen files and the Importer works on that, so **the other
+    file is never touched, not even when moving**. `imported.json` has two extra key kinds: `PART|` (single file
+    imported) and `LEFT|` (left on purpose by a partial move: not offered as new until the choice changes). A file
+    left behind never counts as imported, so deleting it still warns (`isFullyImported`). ⌘C and drag follow the choice.
+    Delete (⌘⌫) still removes the whole pair.
 
 ## Open items / ideas
 

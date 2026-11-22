@@ -8,6 +8,11 @@ public enum MediaFilter { All, Videos, Photos }
 public enum SortKey { Date, Name, Duration, Size }
 public enum FolderMode { Flat, ByShootDay, ByImportDay, Custom }
 public enum DeleteMode { Keep, Permanent, RecycleBin }
+/// <summary>Cosa importare delle foto scattate in RAW + JPEG (Processed = JPEG o HEIF).</summary>
+public enum PhotoFormat { Both, Processed, Raw }
+
+/// <summary>Uno dei file di una foto (il JPEG, il RAW…).</summary>
+public sealed record PhotoPart(string Path, long Size, DateTime Modified, bool IsRaw);
 
 /// <summary>Una clip video (o foto) trovata sulla scheda.</summary>
 public sealed class Clip
@@ -27,6 +32,33 @@ public sealed class Clip
     public IReadOnlyList<string> Companions { get; init; } = Array.Empty<string>();   // es. il RAW insieme al JPEG
     public long CompanionsSize { get; init; }
     public string? Badge { get; init; }                     // "RAW + JPEG", "RAW", "HEIF"…
+
+    public IReadOnlyList<PhotoPart> Parts { get; init; } = Array.Empty<PhotoPart>();  // tutti i file della foto (il principale per primo)
+
+    /// <summary>Scattata in RAW + JPEG (o RAW + HEIF): si può scegliere quale dei due importare.</summary>
+    public bool IsRawPair => Parts.Any(p => p.IsRaw) && Parts.Any(p => !p.IsRaw);
+
+    /// <summary>Il formato che accompagna il RAW: "JPEG", "HEIF"…</summary>
+    public string ProcessedLabel => Badge?.Replace("RAW + ", "") ?? "JPEG";
+
+    /// <summary>I file da importare con questa scelta (la scelta vale solo per le coppie RAW + JPEG).</summary>
+    public IReadOnlyList<PhotoPart> PartsFor(PhotoFormat format) => IsRawPair ? Parts.Where(format.Wants).ToList() : Parts;
+
+    /// <summary>La stessa foto con i soli file da importare: è quella che si copia, si verifica e (spostando) si cancella.
+    /// Il file escluso non ne fa parte, quindi non viene mai toccato.</summary>
+    public Clip Restricted(PhotoFormat format)
+    {
+        if (format == PhotoFormat.Both || !IsRawPair) return this;
+        var wanted = PartsFor(format);
+        if (wanted.Count == 0) return this;
+        var others = wanted.Skip(1).ToList();
+        return new Clip
+        {
+            Path = wanted[0].Path, Size = wanted[0].Size, Date = Date, Resolution = Resolution, Kind = MediaKind.Photo,
+            Companions = others.Select(p => p.Path).ToList(), CompanionsSize = others.Sum(p => p.Size), Parts = wanted,
+            Badge = format == PhotoFormat.Raw ? "RAW" : ProcessedLabel,
+        };
+    }
 
     public bool IsPhoto => Kind == MediaKind.Photo;
     public long ImportSize => Size + CompanionsSize;
@@ -129,6 +161,21 @@ public static class Labels
         FolderMode.ByShootDay => L("One folder per shooting day"),
         FolderMode.ByImportDay => L("One folder with today's date"),
         _ => L("One folder with a custom name"),
+    };
+
+    /// <summary>processed: come si chiama l'altro formato ("JPEG" o "HEIF")</summary>
+    public static string Of(PhotoFormat f, string processed) => f switch
+    {
+        PhotoFormat.Both => L("Both"),
+        PhotoFormat.Processed => L("{0} only", processed),
+        _ => L("{0} only", "RAW"),
+    };
+
+    public static bool Wants(this PhotoFormat f, PhotoPart p) => f switch
+    {
+        PhotoFormat.Processed => !p.IsRaw,
+        PhotoFormat.Raw => p.IsRaw,
+        _ => true,
     };
 
     public static bool Includes(this MediaFilter f, Clip c) => f switch

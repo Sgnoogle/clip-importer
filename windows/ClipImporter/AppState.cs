@@ -97,6 +97,18 @@ public sealed class AppState : Observable
     public bool CopySidecar { get => s.CopySidecar; set { s.CopySidecar = value; Save(); Raise(); } }
     public bool CopyProxy { get => s.CopyProxy; set { s.CopyProxy = value; Save(); Raise(); } }
     public bool RenameWithDate { get => s.RenameWithDate; set { s.RenameWithDate = value; Save(); Raise(); Raise(nameof(DestinationPreview)); } }
+    /// <summary>Foto RAW + JPEG: quali file importare.</summary>
+    public PhotoFormat PhotoFormat
+    {
+        get => s.PhotoFormat;
+        set
+        {
+            if (s.PhotoFormat == value) return;
+            s.PhotoFormat = value; Save(); Raise();
+            Rebuild();
+            foreach (var it in Sections.SelectMany(x => x.Items)) it.FormatChanged();
+        }
+    }
     public bool RevealAfter { get => s.RevealAfter; set { s.RevealAfter = value; Save(); Raise(); } }
     public bool EjectAfter { get => s.EjectAfter; set { s.EjectAfter = value; Save(); Raise(); } }
     public bool AutoOpen { get => s.AutoOpen; set { s.AutoOpen = value; Save(); Raise(); } }
@@ -115,12 +127,33 @@ public sealed class AppState : Observable
 
     // MARK: Elenco visibile
 
-    public bool IsImported(Clip c) => importedKeys.Contains(c.Key);
+    public bool IsImported(Clip c) => ImportedStore.IsImported(c, PhotoFormat, importedKeys);
+    /// <summary>Importata con tutti i suoi file, qualunque sia la scelta RAW / JPEG (serve prima di cancellare).</summary>
+    public bool IsFullyImported(Clip c) => ImportedStore.IsImported(c, PhotoFormat.Both, importedKeys);
+    public bool IsNew(Clip c) => ImportedStore.IsNew(c, PhotoFormat, importedKeys);
+
+    /// <summary>La clip con i soli file da importare (per le foto RAW + JPEG dipende dalla scelta nella barra in basso).</summary>
+    public Clip Prepared(Clip c) => c.Restricted(PhotoFormat);
+
+    /// <summary>La scelta RAW / JPEG si mostra solo se serve: ci sono coppie, o file lasciati indietro da una scelta precedente.</summary>
+    public bool ShowsPhotoFormat => FilteredClips.Any(c => c.IsRawPair || ImportedStore.WasLeft(c, importedKeys));
+    /// <summary>"JPEG", oppure "HEIF" se tutte le coppie sono RAW + HEIF.</summary>
+    public string ProcessedLabel
+    {
+        get
+        {
+            var names = clips.Where(c => c.IsRawPair).Select(c => c.ProcessedLabel).Distinct().ToList();
+            return names.Count == 1 ? names[0] : "JPEG";
+        }
+    }
+    public string PhotoFormatTitle => "RAW + " + ProcessedLabel;
+    public string PhotoFormatTooltip =>
+        L("Choose which files to import from {0} photos. When moving, the other file stays where it is.", PhotoFormatTitle);
     public Flag FlagOf(Clip c) => flags.TryGetValue(c.Key, out var f) ? f : Flag.None;
     public bool IsRejected(Clip c) => FlagOf(c) == Flag.Reject;
 
     public List<Clip> FilteredClips { get { var f = MediaFilter; return clips.Where(c => f.Includes(c)).ToList(); } }
-    public List<Clip> NewClips => FilteredClips.Where(c => !IsImported(c)).ToList();
+    public List<Clip> NewClips => FilteredClips.Where(IsNew).ToList();
 
     public List<Clip> VisibleClips
     {
@@ -196,6 +229,7 @@ public sealed class AppState : Observable
         Raise(nameof(ShowScanning)); Raise(nameof(ShowEmpty)); Raise(nameof(ShowFilterEmpty)); Raise(nameof(ShowAllImported));
         Raise(nameof(ShowGrid)); Raise(nameof(StatusText)); Raise(nameof(FilterEmptyTitle)); Raise(nameof(FilterEmptySubtitle));
         Raise(nameof(EmptySubtitle)); Raise(nameof(ScanningText));
+        Raise(nameof(PhotoFormatTitle)); Raise(nameof(PhotoFormatTooltip)); Raise(nameof(ShowsPhotoFormat));
         RaiseButtons();
     }
 
@@ -221,7 +255,7 @@ public sealed class AppState : Observable
         get
         {
             long total = clips.Sum(c => c.ImportSize);
-            int fresh = clips.Count(c => !IsImported(c));
+            int fresh = clips.Count(IsNew);
             return string.Join(" · ", Fmt.Items(clips), fresh == 1 ? L("1 new") : L("{0} new", fresh), Fmt.Bytes(total));
         }
     }
@@ -262,7 +296,7 @@ public sealed class AppState : Observable
         get
         {
             var list = ClipsToImport;
-            var size = Fmt.Bytes(list.Sum(c => c.ImportSize));
+            var size = Fmt.Bytes(list.Sum(c => Prepared(c).ImportSize));
             bool move = WillMove;
             if (selection.Count == 0)
             {
@@ -321,6 +355,7 @@ public sealed class AppState : Observable
             var o = CurrentOptions(DeleteMode.Keep);
             var clip = ClipsToImport.FirstOrDefault() ?? clips.FirstOrDefault();
             if (clip == null) return "";
+            clip = Prepared(clip);
             var folder = Importer.FolderFor(clip, o, DateTime.Now);
             var parts = new List<string> { System.IO.Path.GetFileName(o.DestRoot.TrimEnd('\\')) };
             if (!string.Equals(folder, o.DestRoot, StringComparison.OrdinalIgnoreCase)) parts.Add(System.IO.Path.GetFileName(folder));
@@ -523,7 +558,7 @@ public sealed class AppState : Observable
     public bool IsSelected(Clip c) => selection.Contains(c.Path);
     public void SelectOnly(Clip c) { SelectSingle(c); RefreshItemStates(); }
     public void SelectAll() { selection.Clear(); selection.UnionWith(VisibleClips.Select(c => c.Path)); ResetRange(); RefreshItemStates(); }
-    public void SelectNew() { selection.Clear(); selection.UnionWith(VisibleClips.Where(c => !IsImported(c) && !IsRejected(c)).Select(c => c.Path)); ResetRange(); RefreshItemStates(); }
+    public void SelectNew() { selection.Clear(); selection.UnionWith(VisibleClips.Where(c => IsNew(c) && !IsRejected(c)).Select(c => c.Path)); ResetRange(); RefreshItemStates(); }
     public void SelectNone() { selection.Clear(); ResetRange(); RefreshItemStates(); }
     public void SelectFlagged(Flag f) { selection.Clear(); selection.UnionWith(VisibleClips.Where(c => FlagOf(c) == f).Select(c => c.Path)); ResetRange(); RefreshItemStates(); }
 
@@ -590,7 +625,7 @@ public sealed class AppState : Observable
 
     public void SetImported(Clip clip, bool imported)
     {
-        if (imported) importedKeys.Add(clip.Key); else importedKeys.Remove(clip.Key);
+        ImportedStore.Set(clip, imported, importedKeys);
         ImportedStore.Save(importedKeys);
         RefreshItemStates();
         Raise(nameof(SummaryText));
@@ -640,7 +675,8 @@ public sealed class AppState : Observable
         var list = SelectedClips;
         if (list.Count == 0) { SystemSounds.Beep.Play(); return; }
         var files = new StringCollection();
-        foreach (var c in list)
+        // RAW e JPEG insieme, o solo quello scelto nella barra
+        foreach (var c in list.Select(Prepared))
         {
             files.Add(c.Path);
             foreach (var x in c.Companions) files.Add(x);
@@ -653,7 +689,7 @@ public sealed class AppState : Observable
     public IEnumerable<string> DragPaths(Clip clip)
     {
         var list = selection.Contains(clip.Path) ? SelectedClips : new List<Clip> { clip };
-        return list.SelectMany(c => new[] { c.Path }.Concat(c.Companions));
+        return list.Select(Prepared).SelectMany(c => new[] { c.Path }.Concat(c.Companions));
     }
 
     /// <summary>Canc: dalla scheda elimina per sempre (con conferma), dalle cartelle sposta nel Cestino.</summary>
@@ -663,7 +699,7 @@ public sealed class AppState : Observable
         if (list.Count == 0 || progress != null || current is not { } source) { SystemSounds.Beep.Play(); return; }
         if (source.IsVolume)
         {
-            int notImported = list.Count(c => !IsImported(c));
+            int notImported = list.Count(c => !IsFullyImported(c));
             var title = list.Count == 1 ? L("Delete “{0}” from the card?", list[0].Name) : L("Delete {0} from the card?", Fmt.Items(list));
             var info = L("Related files (XML, thumbnail, proxy, RAW) are deleted too. This can't be undone.");
             if (notImported > 0)
@@ -743,7 +779,12 @@ public sealed class AppState : Observable
             Dialogs.Alert(L("Folder name missing"), L("Type a folder name at the bottom, or pick another option under “Organize”."));
             return;
         }
-        long needed = list.Sum(c => c.ImportSize + (CopyProxy ? c.ProxySize : 0));
+        // Si lavora sulle foto con i soli file scelti (RAW, JPEG o entrambi): gli altri non vengono toccati
+        var format = PhotoFormat;
+        var jobs = list.Select(c => c.Restricted(format)).ToList();
+        var originals = new Dictionary<string, Clip>(StringComparer.OrdinalIgnoreCase);
+        for (int i = 0; i < jobs.Count; i++) originals[jobs[i].Path] = list[i];
+        long needed = jobs.Sum(c => c.ImportSize + (CopyProxy ? c.ProxySize : 0));
         if (Importer.FreeSpace(options.DestRoot) is long free && free < needed)
         {
             Dialogs.Alert(L("Not enough space"), L("{0} needed, but the destination only has {1} free.", Fmt.Bytes(needed), Fmt.Bytes(free)));
@@ -752,25 +793,28 @@ public sealed class AppState : Observable
 
         cancelSource = new CancellationTokenSource();
         var token = cancelSource.Token;
-        Progress = new ImportProgress { FileCount = list.Count, CurrentName = list[0].Name, BytesTotal = needed, StartedAt = DateTime.Now };
+        Progress = new ImportProgress { FileCount = jobs.Count, CurrentName = jobs[0].Name, BytesTotal = needed, StartedAt = DateTime.Now };
         AltHeld = false;
         RaiseButtons();
         string? volume = current is { IsVolume: true } v ? v.Path : null;
         bool fromVolume = volume != null;
 
-        var result = await Task.Run(() => Importer.Run(list, options, token, p => ui.BeginInvoke(() => { if (Progress != null) Progress = p; })));
-        FinishImport(result, volume);
+        var result = await Task.Run(() => Importer.Run(jobs, options, token, p => ui.BeginInvoke(() => { if (Progress != null) Progress = p; })));
+        FinishImport(result, originals, format, volume);
     }
 
     public void CancelImport() => cancelSource?.Cancel();
 
-    void FinishImport(ImportResult r, string? volume)
+    void FinishImport(ImportResult r, Dictionary<string, Clip> originals, PhotoFormat format, string? volume)
     {
         cancelSource = null;
         Progress = null;
-        foreach (var c in r.Imported.Concat(r.Skipped)) importedKeys.Add(c.Key);
+        Clip Original(Clip job) => originals.TryGetValue(job.Path, out var o) ? o : job;
+        var moved = new HashSet<string>(r.Deleted.Select(c => c.Path), StringComparer.OrdinalIgnoreCase);
+        foreach (var job in r.Imported.Concat(r.Skipped))
+            ImportedStore.Record(Original(job), format, moved.Contains(job.Path), importedKeys);
         ImportedStore.Save(importedKeys);
-        selection.ExceptWith(r.Imported.Concat(r.Skipped).Select(c => c.Path));
+        selection.ExceptWith(r.Imported.Concat(r.Skipped).Select(c => Original(c).Path));
         if (pendingRescan || r.Deleted.Count > 0) { pendingRescan = false; Refresh(); }
         RefreshItemStates();
         Raise(nameof(SummaryText));
@@ -787,6 +831,8 @@ public sealed class AppState : Observable
         {
             long freed = r.Deleted.Sum(c => c.ImportSize + c.ProxySize);
             message += L(" · {0} freed {1}", Fmt.Bytes(freed), SourcePlace);
+            if (format != PhotoFormat.Both && r.Deleted.Select(Original).FirstOrDefault(c => c.IsRawPair) is { } pair)
+                message += L(" · {0} files left where they were", format == PhotoFormat.Raw ? pair.ProcessedLabel : "RAW");
         }
         ShowBanner(message);
         SystemSounds.Asterisk.Play();

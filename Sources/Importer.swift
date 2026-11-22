@@ -393,6 +393,52 @@ enum ImportedStore {
         "\(clip.name.uppercased())|\(clip.size)|\(Int(clip.date.timeIntervalSince1970))"
     }
 
+    // Coppie RAW + JPEG: `key` = foto importata per intero. I singoli file si ricordano a parte, così dopo
+    // aver importato solo il JPEG il RAW non risulta "già importato" (e cancellarlo avvisa).
+    // Data del file e non EXIF: senza codec il RAW da solo non ha la data di scatto.
+    private static func fileKey(_ p: PhotoPart) -> String {
+        "\(p.url.lastPathComponent.uppercased())|\(p.size)|\(Int(p.modified.timeIntervalSince1970))"
+    }
+    static func partKey(_ p: PhotoPart) -> String { "PART|" + fileKey(p) }
+    /// Lasciato apposta sulla scheda spostando solo l'altro formato.
+    static func leftKey(_ p: PhotoPart) -> String { "LEFT|" + fileKey(p) }
+
+    /// Tutti i file che si importerebbero con questa scelta sono già stati importati?
+    static func isImported(_ clip: Clip, format: PhotoFormat, in keys: Set<String>) -> Bool {
+        if keys.contains(key(clip)) { return true }
+        let wanted = clip.parts(for: format)
+        return !wanted.isEmpty && wanted.allSatisfy { keys.contains(partKey($0)) }
+    }
+
+    /// Nuova = da importare. Non lo sono i file lasciati apposta sulla scheda, finché non si cambia scelta.
+    static func isNew(_ clip: Clip, format: PhotoFormat, in keys: Set<String>) -> Bool {
+        !isImported(clip, format: format, in: keys) && !isLeftBehind(clip, format: format, in: keys)
+    }
+
+    static func isLeftBehind(_ clip: Clip, format: PhotoFormat, in keys: Set<String>) -> Bool {
+        wasLeft(clip, in: keys) && !clip.parts.contains(where: format.wants)
+    }
+
+    /// Rimasta sulla scheda dopo aver spostato solo l'altro formato (qualunque sia la scelta di adesso).
+    static func wasLeft(_ clip: Clip, in keys: Set<String>) -> Bool {
+        !clip.parts.isEmpty && !clip.isRawPair && clip.parts.allSatisfy { keys.contains(leftKey($0)) }
+    }
+
+    /// Segna come importata `clip` (la foto intera) con i soli file scelti; `moved`: spostata, non copiata.
+    static func record(_ clip: Clip, format: PhotoFormat, moved: Bool, in keys: inout Set<String>) {
+        let taken = clip.parts(for: format)
+        if taken.count == clip.parts.count { keys.insert(key(clip)) }
+        for p in taken { keys.insert(partKey(p)); keys.remove(leftKey(p)) }
+        if moved { for p in clip.parts where !taken.contains(p) { keys.insert(leftKey(p)) } }
+    }
+
+    /// Dal menu: segna (o toglie il segno a) tutta la foto.
+    static func set(_ clip: Clip, imported: Bool, in keys: inout Set<String>) {
+        if imported { record(clip, format: .both, moved: false, in: &keys); return }
+        keys.remove(key(clip))
+        for p in clip.parts { keys.remove(partKey(p)); keys.remove(leftKey(p)) }
+    }
+
     static func load() -> Set<String> {
         guard let data = try? Data(contentsOf: fileURL),
               let list = try? JSONDecoder().decode([String].self, from: data) else { return [] }

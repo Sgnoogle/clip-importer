@@ -28,6 +28,7 @@ public static class SelfTest
         {
             TestScanAndMove(root);
             TestCopyAndSkip(root);
+            TestPhotoFormat(root);
             TestStrings();
             TestPlurals();
         }
@@ -173,6 +174,44 @@ public static class SelfTest
         cts.Cancel();
         var cancelled = Importer.Run(clips, new ImportOptions { DestRoot = System.IO.Path.Combine(root, "cancel-dest") }, cts.Token, _ => { });
         Check(cancelled.Cancelled && cancelled.Imported.Count == 0, "cancel stops the import");
+    }
+
+    /// <summary>Foto RAW + JPEG importando solo uno dei due: l'altro non si tocca mai.</summary>
+    static void TestPhotoFormat(string root)
+    {
+        foreach (var format in new[] { PhotoFormat.Processed, PhotoFormat.Raw })
+        {
+            var card = MakeCard(System.IO.Path.Combine(root, "format-" + format));
+            var photo = CardScanner.Scan(card, deep: false).First(c => c.IsPhoto);
+            Check(photo.IsRawPair && photo.ProcessedLabel == "JPEG", $"[{format}] RAW + JPEG pair recognised");
+            string jpg = photo.Path, raw = photo.Companions[0];
+            string wanted = format == PhotoFormat.Raw ? raw : jpg, other = format == PhotoFormat.Raw ? jpg : raw;
+            string wantedSha = Sha(wanted), otherSha = Sha(other);
+            var job = photo.Restricted(format);
+            Check(job.Path == wanted && job.Companions.Count == 0 && job.ImportSize == new FileInfo(wanted).Length, $"[{format}] only the chosen file");
+
+            var dest = System.IO.Path.Combine(root, "format-dest-" + format);
+            var r = Importer.Run(new List<Clip> { job }, new ImportOptions { DestRoot = dest, FolderMode = FolderMode.Flat, DeleteOriginals = DeleteMode.Permanent },
+                                 CancellationToken.None, _ => { });
+            Check(r.Imported.Count == 1 && r.Deleted.Count == 1, $"[{format}] moved");
+            Check(Directory.GetFiles(dest).Length == 1 && Sha(System.IO.Path.Combine(dest, System.IO.Path.GetFileName(wanted))) == wantedSha, $"[{format}] only the chosen file in the destination, identical");
+            Check(!File.Exists(wanted) && File.Exists(other) && Sha(other) == otherSha, $"[{format}] the other file untouched on the card");
+
+            var keys = new HashSet<string>();
+            ImportedStore.Record(photo, format, true, keys);
+            var left = CardScanner.Scan(card, deep: false).First(c => c.IsPhoto);
+            Check(!ImportedStore.IsImported(left, PhotoFormat.Both, keys), $"[{format}] the other file doesn't count as imported");
+            Check(!ImportedStore.IsNew(left, format, keys), $"[{format}] the other file isn't offered again");
+            Check(ImportedStore.IsNew(left, PhotoFormat.Both, keys), $"[{format}] offered again when the choice changes");
+
+            var copied = new HashSet<string>();
+            ImportedStore.Record(photo, format, false, copied);
+            Check(ImportedStore.IsImported(photo, format, copied) && !ImportedStore.IsImported(photo, PhotoFormat.Both, copied), $"[{format}] copied: imported only for that choice");
+        }
+        var plain = new Clip { Path = "C0001.MP4", Size = 1, Date = DateTime.Now };
+        var k = new HashSet<string>();
+        ImportedStore.Record(plain, PhotoFormat.Raw, false, k);
+        Check(ReferenceEquals(plain.Restricted(PhotoFormat.Raw), plain) && ImportedStore.IsImported(plain, PhotoFormat.Raw, k), "videos ignore the RAW/JPEG choice");
     }
 
     static readonly Regex Placeholder = new(@"\{\d+\}");

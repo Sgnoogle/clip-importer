@@ -94,7 +94,7 @@ Se il Mac chiede di installare gli "Strumenti da riga di comando", accetta e, al
 - **⌘⌫** (o ⌫) elimina le clip selezionate dalla scheda, insieme a XML, miniatura, proxy e RAW, e aggiorna l'indice della fotocamera. Chiede conferma e avvisa se qualcuna non è ancora stata importata. Da una cartella del Mac, invece, le manda nel Cestino.
 - **⌥⌘R** mostra nel Finder le clip selezionate. **Esc** toglie la selezione.
 - In alto, **Tutto · Video · Foto** sceglie cosa mostrare (e quindi cosa importare): quello che è nascosto non viene mai importato.
-- Le foto scattate in **RAW + JPEG** compaiono una volta sola, con l'etichetta «RAW + JPEG»: si importano entrambi i file, con lo stesso nome. Le foto verticali si vedono intere.
+- Le foto scattate in **RAW + JPEG** compaiono una volta sola, con l'etichetta «RAW + JPEG»: con il menu **RAW + JPEG** sotto il pulsante Importa scegli se importare entrambi i file (con lo stesso nome), solo il JPEG o solo il RAW. Se sposti, il file che non importi resta sulla scheda. Le foto verticali si vedono intere.
 - Le clip sono raggruppate per giorno, con "Seleziona giorno". Il menu **Ordina** (frecce in alto) le ordina anche per nome, durata o dimensione.
 - Le clip già importate hanno la spunta verde e sono più chiare; "Nascondi importate" le toglie dalla vista.
 - Se non selezioni niente, il pulsante importa **tutte le clip nuove**.

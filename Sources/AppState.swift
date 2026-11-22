@@ -65,6 +65,8 @@ final class AppState: ObservableObject {
     @Published var deleteAfter: Bool { didSet { defaults.set(deleteAfter, forKey: "deleteAfter") } }
     /// ⌥ premuto: come nel Finder, trasforma "Importa" in "Sposta"
     @Published var optionHeld = false
+    /// Foto RAW + JPEG: quali file importare
+    @Published var photoFormat: PhotoFormat { didSet { defaults.set(photoFormat.rawValue, forKey: "photoFormat") } }
     @Published var revealAfter: Bool { didSet { defaults.set(revealAfter, forKey: "revealAfter") } }
     @Published var ejectAfter: Bool { didSet { defaults.set(ejectAfter, forKey: "ejectAfter") } }
     @Published var autoOpen: Bool { didSet { defaults.set(autoOpen, forKey: "autoOpen") } }
@@ -85,6 +87,7 @@ final class AppState: ObservableObject {
         copySidecar = d.object(forKey: "copySidecar") as? Bool ?? false
         copyProxy = d.object(forKey: "copyProxy") as? Bool ?? false
         renameWithDate = d.object(forKey: "renameWithDate") as? Bool ?? false
+        photoFormat = PhotoFormat(rawValue: d.string(forKey: "photoFormat") ?? "") ?? .both
         revealAfter = d.object(forKey: "revealAfter") as? Bool ?? true
         deleteAfter = d.object(forKey: "deleteAfter") as? Bool ?? false
         ejectAfter = d.object(forKey: "ejectAfter") as? Bool ?? false
@@ -111,7 +114,23 @@ final class AppState: ObservableObject {
 
     // MARK: - Elenco visibile
 
-    func isImported(_ clip: Clip) -> Bool { importedKeys.contains(ImportedStore.key(clip)) }
+    func isImported(_ clip: Clip) -> Bool { ImportedStore.isImported(clip, format: photoFormat, in: importedKeys) }
+    /// Importata con tutti i suoi file, qualunque sia la scelta RAW / JPEG (serve prima di cancellare).
+    func isFullyImported(_ clip: Clip) -> Bool { ImportedStore.isImported(clip, format: .both, in: importedKeys) }
+    func isNew(_ clip: Clip) -> Bool { ImportedStore.isNew(clip, format: photoFormat, in: importedKeys) }
+
+    /// La clip con i soli file da importare (per le foto RAW + JPEG dipende dalla scelta nella barra in basso).
+    func prepared(_ clip: Clip) -> Clip { clip.restricted(to: photoFormat) }
+
+    /// La scelta RAW / JPEG si mostra solo se serve: ci sono coppie, o file lasciati indietro da una scelta precedente.
+    var showsPhotoFormat: Bool {
+        filteredClips.contains { $0.isRawPair || ImportedStore.wasLeft($0, in: importedKeys) }
+    }
+    /// "JPEG", oppure "HEIF" se tutte le coppie sono RAW + HEIF
+    var processedLabel: String {
+        let names = Set(clips.filter(\.isRawPair).map(\.processedLabel))
+        return names.count == 1 ? names.first! : "JPEG"
+    }
 
     var visibleClips: [Clip] {
         let filter = mediaFilter
@@ -147,13 +166,13 @@ final class AppState: ObservableObject {
 
     /// Clip del tipo mostrato (video/foto), importate o no.
     var filteredClips: [Clip] { clips.filter(mediaFilter.includes) }
-    var newClips: [Clip] { filteredClips.filter { !isImported($0) } }
+    var newClips: [Clip] { filteredClips.filter(isNew) }
     var hasVideos: Bool { clips.contains { !$0.isPhoto } }
     var hasPhotos: Bool { clips.contains(where: \.isPhoto) }
 
     var summaryText: String {
         let total = clips.reduce(Int64(0)) { $0 + $1.importSize }
-        let fresh = clips.filter { !isImported($0) }.count
+        let fresh = clips.filter(isNew).count
         var parts = [Fmt.items(clips)]
         parts.append(fresh == 1 ? L("1 new") : L("{0} new", fresh))
         parts.append(Fmt.bytes(total))
@@ -321,7 +340,7 @@ final class AppState: ObservableObject {
 
     var importButtonTitle: String {
         let list = clipsToImport
-        let size = Fmt.bytes(list.reduce(Int64(0)) { $0 + $1.importSize })
+        let size = Fmt.bytes(list.reduce(Int64(0)) { $0 + prepared($1).importSize })
         if selection.isEmpty {
             if list.isEmpty { return L("Nothing new to import") }
             let move = willMove
@@ -352,7 +371,7 @@ final class AppState: ObservableObject {
 
     var destinationPreview: String {
         let options = currentOptions
-        guard let clip = clipsToImport.first ?? clips.first else { return "" }
+        guard let clip = (clipsToImport.first ?? clips.first).map(prepared) else { return "" }
         let folder = Importer.folder(for: clip, options: options, now: Date())
         var parts = [options.destRoot.lastPathComponent]
         if folder.path != options.destRoot.path { parts.append(folder.lastPathComponent) }
@@ -555,7 +574,7 @@ final class AppState: ObservableObject {
     }
 
     func selectAll() { selection = Set(visibleClips.map(\.id)); resetRange() }
-    func selectNew() { selection = Set(visibleClips.filter { !isImported($0) && !isRejected($0) }.map(\.id)); resetRange() }
+    func selectNew() { selection = Set(visibleClips.filter { isNew($0) && !isRejected($0) }.map(\.id)); resetRange() }
     func selectNone() { selection = []; resetRange() }
 
     func isDaySelected(_ section: DaySection) -> Bool {
@@ -568,8 +587,7 @@ final class AppState: ObservableObject {
     }
 
     func setImported(_ clip: Clip, _ imported: Bool) {
-        let key = ImportedStore.key(clip)
-        if imported { importedKeys.insert(key) } else { importedKeys.remove(key) }
+        ImportedStore.set(clip, imported: imported, in: &importedKeys)
         ImportedStore.save(importedKeys)
     }
 
@@ -582,8 +600,8 @@ final class AppState: ObservableObject {
     func copySelection() {
         let list = selectedClips
         guard !list.isEmpty else { NSSound.beep(); return }
-        // Il RAW va sempre con il suo JPEG; l'XML Sony solo se si è scelto di copiarlo
-        let urls = list.flatMap { [$0.url] + $0.companions + (copySidecar ? [$0.sidecarURL].compactMap { $0 } : []) }
+        // RAW e JPEG insieme, o solo quello scelto nella barra; l'XML Sony solo se si è scelto di copiarlo
+        let urls = list.map(prepared).flatMap { [$0.url] + $0.companions + (copySidecar ? [$0.sidecarURL].compactMap { $0 } : []) }
         let pb = NSPasteboard.general
         pb.clearContents()
         pb.writeObjects(urls as [NSURL])
@@ -596,7 +614,7 @@ final class AppState: ObservableObject {
         let list = selectedClips
         guard !list.isEmpty, progress == nil, let source = current else { NSSound.beep(); return }
         if source.isVolume {
-            let notImported = list.filter { !isImported($0) }.count
+            let notImported = list.filter { !isFullyImported($0) }.count
             let a = NSAlert()
             a.alertStyle = .warning
             a.messageText = list.count == 1
@@ -672,7 +690,11 @@ final class AppState: ObservableObject {
                   L("Type a folder name at the bottom, or pick another option under “Organize”."))
             return
         }
-        let needed = list.reduce(Int64(0)) { $0 + $1.importSize + (copyProxy ? ($1.proxySize ?? 0) : 0) }
+        // Si lavora sulle foto con i soli file scelti (RAW, JPEG o entrambi): gli altri non vengono toccati
+        let format = photoFormat
+        let jobs = list.map { $0.restricted(to: format) }
+        let originals = Dictionary(zip(jobs.map(\.id), list), uniquingKeysWith: { a, _ in a })
+        let needed = jobs.reduce(Int64(0)) { $0 + $1.importSize + (copyProxy ? ($1.proxySize ?? 0) : 0) }
         if let free = Importer.freeSpace(at: options.destRoot), free < needed {
             alert(L("Not enough space"),
                   L("{0} needed, but the destination only has {1} free.", Fmt.bytes(needed), Fmt.bytes(free)))
@@ -683,18 +705,18 @@ final class AppState: ObservableObject {
         let flag = CancelFlag()
         activeJob = job
         cancelFlag = flag
-        progress = ImportProgress(fileIndex: 0, fileCount: list.count, currentName: list[0].name,
+        progress = ImportProgress(fileIndex: 0, fileCount: jobs.count, currentName: jobs[0].name,
                                   bytesDone: 0, bytesTotal: needed, startedAt: Date())
         optionHeld = false
         let volume: URL? = (current?.isVolume ?? false) ? current?.id : nil
 
         Task { @MainActor in
             let result = await Task.detached(priority: .userInitiated) {
-                Importer.run(list, options: options, cancel: flag) { p in
+                Importer.run(jobs, options: options, cancel: flag) { p in
                     Task { @MainActor in AppState.shared.applyProgress(p, job: job) }
                 }
             }.value
-            finishImport(result, volume: volume)
+            finishImport(result, originals: originals, format: format, volume: volume)
         }
     }
 
@@ -705,16 +727,19 @@ final class AppState: ObservableObject {
 
     func cancelImport() { cancelFlag?.cancel() }
 
-    private func finishImport(_ r: ImportResult, volume: URL?) {
+    private func finishImport(_ r: ImportResult, originals: [URL: Clip], format: PhotoFormat, volume: URL?) {
         activeJob = nil
         cancelFlag = nil
         progress = nil
         if pendingRescan || !r.deleted.isEmpty { pendingRescan = false; refresh() }
 
         let done = r.imported + r.skipped
-        for clip in done { importedKeys.insert(ImportedStore.key(clip)) }
+        let moved = Set(r.deleted.map(\.id))
+        for job in done {
+            ImportedStore.record(originals[job.id] ?? job, format: format, moved: moved.contains(job.id), in: &importedKeys)
+        }
         ImportedStore.save(importedKeys)
-        selection.subtract(done.map(\.id))
+        selection.subtract(done.map { originals[$0.id]?.id ?? $0.id })
 
         var message: String
         if r.cancelled {
@@ -726,6 +751,9 @@ final class AppState: ObservableObject {
         if !r.deleted.isEmpty {
             let freed = r.deleted.reduce(Int64(0)) { $0 + $1.importSize + ($1.proxySize ?? 0) }
             message += L(" · {0} freed {1}", Fmt.bytes(freed), sourcePlace)
+            if format != .both, let pair = r.deleted.compactMap({ originals[$0.id] }).first(where: \.isRawPair) {
+                message += L(" · {0} files left where they were", format == .raw ? pair.processedLabel : "RAW")
+            }
         }
         showBanner(message)
         NSSound(named: "Glass")?.play()

@@ -32,6 +32,8 @@ public partial class MainWindow : Window
         };
         foreach (var m in state.FolderModes) FolderModeBox.Items.Add(new ComboBoxItem { Content = Labels.Of(m), Tag = m });
         FolderModeBox.SelectedIndex = (int)state.FolderMode;
+        FillPhotoFormats();
+        state.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(AppState.ShowsPhotoFormat)) FillPhotoFormats(); };
         // Il percorso di destinazione si prende tutto lo spazio libero della barra in basso (come sul Mac):
         // allargando la finestra si vede intero; il pulsante Importa non si accorcia mai.
         foreach (var el in new FrameworkElement[] { BottomOptions, OrganizePanel, ImportPanel, OptionsButton, ChangeDestButton })
@@ -170,6 +172,25 @@ public partial class MainWindow : Window
     void FolderMode_Changed(object sender, SelectionChangedEventArgs e)
     {
         if (FolderModeBox.SelectedItem is ComboBoxItem { Tag: FolderMode m }) state.FolderMode = m;
+    }
+
+    /// <summary>Le voci si chiamano "JPEG" o "HEIF" a seconda di cosa c'è sulla scheda.</summary>
+    string? photoFormatLabel;
+    void FillPhotoFormats()
+    {
+        var label = state.ProcessedLabel;
+        if (label == photoFormatLabel) return;
+        photoFormatLabel = label;
+        PhotoFormatBox.SelectionChanged -= PhotoFormat_Changed;
+        PhotoFormatBox.Items.Clear();
+        foreach (var f in Enum.GetValues<PhotoFormat>()) PhotoFormatBox.Items.Add(new ComboBoxItem { Content = Labels.Of(f, label), Tag = f });
+        PhotoFormatBox.SelectedIndex = (int)state.PhotoFormat;
+        PhotoFormatBox.SelectionChanged += PhotoFormat_Changed;
+    }
+
+    void PhotoFormat_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (PhotoFormatBox.SelectedItem is ComboBoxItem { Tag: PhotoFormat f }) state.PhotoFormat = f;
     }
 
     // MARK: Miniature

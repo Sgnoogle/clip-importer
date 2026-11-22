@@ -42,6 +42,51 @@ public static class ImportedStore
     {
         try { AppPaths.WriteAtomic(FilePath, JsonSerializer.Serialize(keys.OrderBy(k => k).ToList())); } catch { }
     }
+
+    // Coppie RAW + JPEG: Clip.Key = foto importata per intero. I singoli file si ricordano a parte, così dopo
+    // aver importato solo il JPEG il RAW non risulta "già importato" (e cancellarlo avvisa).
+    // Data del file e non EXIF: senza codec il RAW da solo non ha la data di scatto.
+    static string FileKey(PhotoPart p) =>
+        $"{System.IO.Path.GetFileName(p.Path).ToUpperInvariant()}|{p.Size}|{new DateTimeOffset(p.Modified).ToUnixTimeSeconds()}";
+    static string PartKey(PhotoPart p) => "PART|" + FileKey(p);
+    /// <summary>Lasciato apposta sulla scheda spostando solo l'altro formato.</summary>
+    static string LeftKey(PhotoPart p) => "LEFT|" + FileKey(p);
+
+    /// <summary>Tutti i file che si importerebbero con questa scelta sono già stati importati?</summary>
+    public static bool IsImported(Clip clip, PhotoFormat format, HashSet<string> keys)
+    {
+        if (keys.Contains(clip.Key)) return true;
+        var wanted = clip.PartsFor(format);
+        return wanted.Count > 0 && wanted.All(p => keys.Contains(PartKey(p)));
+    }
+
+    /// <summary>Nuova = da importare. Non lo sono i file lasciati apposta sulla scheda, finché non si cambia scelta.</summary>
+    public static bool IsNew(Clip clip, PhotoFormat format, HashSet<string> keys) =>
+        !IsImported(clip, format, keys) && !IsLeftBehind(clip, format, keys);
+
+    public static bool IsLeftBehind(Clip clip, PhotoFormat format, HashSet<string> keys) =>
+        WasLeft(clip, keys) && !clip.Parts.Any(format.Wants);
+
+    /// <summary>Rimasta sulla scheda dopo aver spostato solo l'altro formato (qualunque sia la scelta di adesso).</summary>
+    public static bool WasLeft(Clip clip, HashSet<string> keys) =>
+        clip.Parts.Count > 0 && !clip.IsRawPair && clip.Parts.All(p => keys.Contains(LeftKey(p)));
+
+    /// <summary>Segna come importata la foto intera <paramref name="clip"/> con i soli file scelti; moved: spostata, non copiata.</summary>
+    public static void Record(Clip clip, PhotoFormat format, bool moved, HashSet<string> keys)
+    {
+        var taken = clip.PartsFor(format);
+        if (taken.Count == clip.Parts.Count) keys.Add(clip.Key);
+        foreach (var p in taken) { keys.Add(PartKey(p)); keys.Remove(LeftKey(p)); }
+        if (moved) foreach (var p in clip.Parts.Where(p => !taken.Contains(p))) keys.Add(LeftKey(p));
+    }
+
+    /// <summary>Dal menu: segna (o toglie il segno a) tutta la foto.</summary>
+    public static void Set(Clip clip, bool imported, HashSet<string> keys)
+    {
+        if (imported) { Record(clip, PhotoFormat.Both, false, keys); return; }
+        keys.Remove(clip.Key);
+        foreach (var p in clip.Parts) { keys.Remove(PartKey(p)); keys.Remove(LeftKey(p)); }
+    }
 }
 
 /// <summary>Etichette scelta/scartata, ricordate tra un avvio e l'altro.</summary>
@@ -83,6 +128,7 @@ public sealed class Settings
     public bool CopySidecar { get; set; }
     public bool CopyProxy { get; set; }
     public bool RenameWithDate { get; set; }
+    public PhotoFormat PhotoFormat { get; set; } = PhotoFormat.Both;
     public bool RevealAfter { get; set; } = true;
     public bool EjectAfter { get; set; }
     public bool AutoOpen { get; set; } = true;

@@ -177,7 +177,12 @@ enum CardScanner {
         let keys: Set<URLResourceKey> = [.fileSizeKey, .creationDateKey, .contentModificationDateKey]
         let values = try? main.resourceValues(forKeys: keys)
         let size = Int64(values?.fileSize ?? 0)
-        let otherSize = others.reduce(Int64(0)) { $0 + Int64((try? $1.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0) }
+        let parts = sorted.map { u -> PhotoPart in
+            let v = u == main ? values : try? u.resourceValues(forKeys: keys)
+            return PhotoPart(url: u, size: Int64(v?.fileSize ?? 0), modified: v?.contentModificationDate ?? .distantPast,
+                             isRaw: rawExtensions.contains(u.pathExtension.lowercased()))
+        }
+        let otherSize = parts.dropFirst().reduce(Int64(0)) { $0 + $1.size }
 
         let exif = readPhotoInfo(main)
         let date = exif.date ?? values?.creationDate ?? values?.contentModificationDate ?? Date()
@@ -199,6 +204,7 @@ enum CardScanner {
         clip.kind = .photo
         clip.companions = others
         clip.companionsSize = otherSize
+        clip.parts = parts
         clip.badge = format
         return clip
     }

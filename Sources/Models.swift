@@ -18,6 +18,7 @@ struct Clip: Identifiable, Hashable {
     var kind: MediaKind = .video
     var companions: [URL] = []      // es. il RAW (.ARW) scattato insieme al JPEG
     var companionsSize: Int64 = 0
+    var parts: [PhotoPart] = []     // tutti i file della foto (il principale per primo)
     var badge: String? = nil        // "RAW + JPEG", "RAW", "HEIF"…
 
     var isPhoto: Bool { kind == .photo }
@@ -28,6 +29,31 @@ struct Clip: Identifiable, Hashable {
 
     /// Byte totali da copiare (foto + eventuale RAW abbinato)
     var importSize: Int64 { size + companionsSize }
+
+    /// Scattata in RAW + JPEG (o RAW + HEIF): si può scegliere quale dei due importare.
+    var isRawPair: Bool { parts.contains(where: \.isRaw) && parts.contains { !$0.isRaw } }
+
+    /// Il formato che accompagna il RAW: "JPEG", "HEIF"…
+    var processedLabel: String { badge?.replacingOccurrences(of: "RAW + ", with: "") ?? "JPEG" }
+
+    /// I file da importare con questa scelta (la scelta vale solo per le coppie RAW + JPEG).
+    func parts(for format: PhotoFormat) -> [PhotoPart] { isRawPair ? parts.filter(format.wants) : parts }
+
+    /// La stessa foto con i soli file da importare: è quella che si copia, si verifica e (spostando) si cancella.
+    /// Il file escluso non ne fa parte, quindi non viene mai toccato.
+    func restricted(to format: PhotoFormat) -> Clip {
+        guard isRawPair, format != .both else { return self }
+        let wanted = parts(for: format)
+        guard let main = wanted.first else { return self }
+        var c = Clip(id: main.url, name: main.url.lastPathComponent, size: main.size, date: date, duration: nil,
+                     thumbnailURL: nil, sidecarURL: nil, proxyURL: nil, proxySize: nil, fps: nil, resolution: resolution)
+        c.kind = .photo
+        c.companions = wanted.dropFirst().map(\.url)
+        c.companionsSize = wanted.dropFirst().reduce(0) { $0 + $1.size }
+        c.parts = wanted
+        c.badge = format == .raw ? "RAW" : processedLabel
+        return c
+    }
 
     var canPreview: Bool {
         kind == .video && ["mp4", "mov", "m4v"].contains(url.pathExtension.lowercased())
@@ -40,6 +66,35 @@ struct Clip: Identifiable, Hashable {
 }
 
 enum MediaKind: String { case video, photo }
+
+/// Uno dei file di una foto (il JPEG, il RAW…).
+struct PhotoPart: Hashable {
+    let url: URL
+    let size: Int64
+    let modified: Date
+    let isRaw: Bool
+}
+
+/// Cosa importare delle foto scattate in RAW + JPEG.
+enum PhotoFormat: String, CaseIterable, Identifiable {
+    case both, processed, raw
+    var id: String { rawValue }
+    func wants(_ part: PhotoPart) -> Bool {
+        switch self {
+        case .both: return true
+        case .processed: return !part.isRaw
+        case .raw: return part.isRaw
+        }
+    }
+    /// `processed`: come si chiama l'altro formato ("JPEG" o "HEIF")
+    func label(processed: String) -> String {
+        switch self {
+        case .both: return L("Both")
+        case .processed: return L("{0} only", processed)
+        case .raw: return L("{0} only", "RAW")
+        }
+    }
+}
 
 /// Etichette alla Lightroom: P scelta, X scartata, U nessuna.
 enum Flag: String, Codable { case pick, reject }

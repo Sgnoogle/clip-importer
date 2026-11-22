@@ -41,7 +41,7 @@ If you shoot with a Sony camera, you've probably looked for **PlayMemories Home 
 | | |
 |---|---|
 | 🎬 **Sony video** | XAVC S, XAVC HS, XAVC S-I (`.MP4` in `PRIVATE/M4ROOT/CLIP`) with instant thumbnails, duration, resolution and frame rate read from Sony's XML metadata. AVCHD (`.MTS`) too. |
-| 📷 **Photos** | JPEG, HEIF (`.HIF`) and RAW (`.ARW`, plus other brands' RAW). **RAW + JPEG pairs appear as one item** and are imported together with matching names. |
+| 📷 **Photos** | JPEG, HEIF (`.HIF`) and RAW (`.ARW`, plus other brands' RAW). **RAW + JPEG pairs appear as one item**: choose whether to import both (with matching names), only the JPEG or only the RAW. |
 | 🗂 **Show what you need** | All · Videos · Photos. Grouped by shooting day, sortable by name, duration or size. |
 | 👀 **Preview** | Hover over a clip to scrub through it, press **Space** for Quick Look, double-click to play. |
 | 🔖 **Flags, Lightroom-style** | Hover a thumbnail and click the bookmark to **pick** it (⌥-click to **reject**), or use `P` / `X` / `U` and the arrow keys `←` `→` `↑` `↓`. Rejected items are never imported; if you picked some, the button imports only the picks. |

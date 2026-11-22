@@ -39,7 +39,7 @@
                         <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="6" Padding="5,1"
                                 CornerRadius="4" Background="#B8000000"
                                 Visibility="{Binding Badge, Converter={StaticResource NullVis}}">
-                            <TextBlock Text="{Binding Badge}" Foreground="White" FontSize="11" FontWeight="SemiBold" />
+                            <TextBlock Foreground="White" FontSize="11" FontWeight="SemiBold"><Run Text="{Binding BadgeRaw, Mode=OneWay}" TextDecorations="{Binding BadgeRawLine, Mode=OneWay}" Foreground="{Binding BadgeRawBrush, Mode=OneWay}" /><Run Text="{Binding BadgePlus, Mode=OneWay}" /><Run Text="{Binding BadgeEnd, Mode=OneWay}" TextDecorations="{Binding BadgeEndLine, Mode=OneWay}" Foreground="{Binding BadgeEndBrush, Mode=OneWay}" /></TextBlock>
                         </Border>
 
                         <!-- Segnalibro: pieno se c'è un'etichetta, vuoto al passaggio del mouse -->
@@ -301,6 +301,12 @@
                                 <TextBlock Text="{Binding ImportButtonTitle}" />
                             </StackPanel>
                         </Button>
+                        <!-- Foto RAW + JPEG: quali file importare (solo se ce ne sono) -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0"
+                                    ToolTip="{Binding PhotoFormatTooltip}" Visibility="{Binding ShowsPhotoFormat, Converter={StaticResource Vis}}">
+                            <TextBlock Text="{Binding PhotoFormatTitle}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                            <ComboBox x:Name="PhotoFormatBox" FontSize="11" MinWidth="90" SelectionChanged="PhotoFormat_Changed" />
+                        </StackPanel>
                         <CheckBox Margin="0,6,0,0" HorizontalAlignment="Right" FontSize="11" IsChecked="{Binding DeleteAfter}"
                                   Content="{Binding DeleteAfterLabel}" ToolTip="{Binding DeleteAfterTooltip}" />
                     </StackPanel>
