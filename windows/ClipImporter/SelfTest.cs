@@ -29,6 +29,7 @@ public static class SelfTest
             TestScanAndMove(root);
             TestCopyAndSkip(root);
             TestPhotoFormat(root);
+            TestBigFileProgress();
             TestStrings();
             TestPlurals();
         }
@@ -216,6 +217,19 @@ public static class SelfTest
 
     static readonly Regex Placeholder = new(@"\{\d+\}");
     static HashSet<string> Placeholders(string s) => new(Placeholder.Matches(s).Select(m => m.Value));
+
+    /// <summary>File oltre i 3 GB: byte × byte non sta in un long (sul Mac chiudeva l'app, 1.5-1.7).</summary>
+    static void TestBigFileProgress()
+    {
+        const long size = 12_314_757_949, gb200 = 200_000_000_000;
+        long copy = ImportProgress.ShownBytes(822_083_584, size, size);
+        Check(Math.Abs(copy - 822_083_584) <= 1, $"12 GB clip, copying: shown bytes are right ({copy})");
+        long move = ImportProgress.ShownBytes(size, size * 2, size);
+        Check(Math.Abs(move - size / 2) <= 1, $"12 GB clip, moving: half of the work = half of the file ({move})");
+        Check(ImportProgress.ShownBytes(gb200 * 2, gb200 * 2, gb200) == gb200 && ImportProgress.ShownBytes(gb200 * 3, gb200 * 2, gb200) == gb200,
+            "200 GB clip: ends exactly at its size, never beyond");
+        Check(ImportProgress.ShownBytes(0, 0, 0) == 0, "empty clip: no division by zero");
+    }
 
     static void TestStrings()
     {

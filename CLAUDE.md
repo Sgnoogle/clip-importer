@@ -176,6 +176,13 @@ Never `git add -A` blindly: subagent worktrees live in `.claude/` (now in `.giti
     imported) and `LEFT|` (left on purpose by a partial move: not offered as new until the choice changes). A file
     left behind never counts as imported, so deleting it still warns (`isFullyImported`). ⌘C and drag follow the choice.
     Delete (⌘⌫) still removes the whole pair.
+18. **Crash while importing big clips** (2026-11-22, regression of item 15, v1.5 to v1.7): the "real GB" label computed
+    `workDone * shown / clipWork` in Int64. Bytes times bytes overflows with a single clip over about 3 GB when copying
+    (2.1 GB when moving); Swift traps, so the app closed mid-copy (real report: 12.3 GB clip). C# wraps silently, so
+    Windows only showed wrong GB. Now `ImportProgress.shownBytes` / `ShownBytes` use floating point. Never multiply two
+    byte counts as integers. A crash leaves a hidden `.<name>.part` in the destination: importing the same clip again
+    to the same folder removes it. Test with a file over 4 GB (a sparse one made with `truncate` is enough), not
+    just small fixtures.
 
 ## Open items / ideas
 

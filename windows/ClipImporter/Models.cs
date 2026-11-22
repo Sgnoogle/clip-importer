@@ -101,6 +101,15 @@ public sealed class ImportProgress
     public long CopiedDone { get; set; }
     public long CopiedTotal { get; set; }
 
+    /// <summary>Quanta parte di shown corrisponde al lavoro fatto. In virgola mobile: byte × byte non sta in un long
+    /// già con un file da circa 3 GB (2 GB spostando), e i GB mostrati diventerebbero sbagliati.</summary>
+    public static long ShownBytes(long work, long total, long shown)
+    {
+        if (total <= 0 || shown <= 0 || work <= 0) return 0;
+        if (work >= total) return shown;
+        return Math.Min(shown, (long)((double)work / total * shown));
+    }
+
     public double Fraction => BytesTotal > 0 ? Math.Min(1, (double)BytesDone / BytesTotal) : 0;
     public string Title => Verb.Replace("{0}", CurrentName);
     public string Counter => L("{0} of {1}", FileIndex + 1, FileCount);

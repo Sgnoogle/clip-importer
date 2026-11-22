@@ -83,7 +83,7 @@ public static class Importer
             var now = DateTime.Now;
             if (!force && (now - lastReport).TotalSeconds < 0.15) return;
             lastReport = now;
-            if (clipWork > 0) current.CopiedDone = clipCopiedStart + Math.Min(clipShown, (done - clipWorkStart) * clipShown / clipWork);
+            if (clipWork > 0) current.CopiedDone = clipCopiedStart + ImportProgress.ShownBytes(done - clipWorkStart, clipWork, clipShown);
             current.BytesDone = done;
             progress(current.Clone());
         }

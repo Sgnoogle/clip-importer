@@ -98,7 +98,7 @@ enum Importer {
             guard force || now.timeIntervalSince(lastReport) > 0.15 else { return }
             lastReport = now
             if clipWork > 0 {
-                copied = clipCopiedStart + min(clipShown, (done - clipWorkStart) * clipShown / clipWork)
+                copied = clipCopiedStart + ImportProgress.shownBytes(work: done - clipWorkStart, of: clipWork, shown: clipShown)
             }
             current.bytesDone = done
             current.copiedDone = copied

@@ -187,6 +187,14 @@ struct ImportProgress {
     var copiedDone: Int64 = 0
     var copiedTotal: Int64 = 0
 
+    /// Quanta parte di `shown` corrisponde al lavoro fatto. In virgola mobile: byte × byte non sta in un Int64
+    /// già con un file da circa 3 GB (2 GB spostando), e in Swift l'overflow chiude l'app.
+    static func shownBytes(work: Int64, of total: Int64, shown: Int64) -> Int64 {
+        guard total > 0, shown > 0, work > 0 else { return 0 }
+        if work >= total { return shown }
+        return min(shown, Int64(Double(work) / Double(total) * Double(shown)))
+    }
+
     var fraction: Double {
         bytesTotal > 0 ? min(1, Double(bytesDone) / Double(bytesTotal)) : 0
     }
