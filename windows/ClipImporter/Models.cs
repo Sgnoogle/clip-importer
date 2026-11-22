@@ -42,7 +42,7 @@ public sealed class Clip
     public string ProcessedLabel => Badge?.Replace("RAW + ", "") ?? "JPEG";
 
     /// <summary>I file da importare con questa scelta (la scelta vale solo per le coppie RAW + JPEG).</summary>
-    public IReadOnlyList<PhotoPart> PartsFor(PhotoFormat format) => IsRawPair ? Parts.Where(format.Wants).ToList() : Parts;
+    public IReadOnlyList<PhotoPart> PartsFor(PhotoFormat format) => IsRawPair ? Parts.Where(p => format.Wants(p)).ToList() : Parts;
 
     /// <summary>La stessa foto con i soli file da importare: è quella che si copia, si verifica e (spostando) si cancella.
     /// Il file escluso non ne fa parte, quindi non viene mai toccato.</summary>

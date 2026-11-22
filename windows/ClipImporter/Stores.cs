@@ -65,7 +65,7 @@ public static class ImportedStore
         !IsImported(clip, format, keys) && !IsLeftBehind(clip, format, keys);
 
     public static bool IsLeftBehind(Clip clip, PhotoFormat format, HashSet<string> keys) =>
-        WasLeft(clip, keys) && !clip.Parts.Any(format.Wants);
+        WasLeft(clip, keys) && !clip.Parts.Any(p => format.Wants(p));
 
     /// <summary>Rimasta sulla scheda dopo aver spostato solo l'altro formato (qualunque sia la scelta di adesso).</summary>
     public static bool WasLeft(Clip clip, HashSet<string> keys) =>
